@@ -141,7 +141,11 @@ describeDb('API integration', () => {
     expect(cart.itemCount).toBe(2);
 
     // Create order
-    const create = await app.request('/api/orders', { method: 'POST', headers: auth });
+    const create = await app.request('/api/orders', {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({}),
+    });
     expect(create.status).toBe(201);
     const { orderId } = (await create.json()) as { orderId: string };
 
@@ -213,6 +217,115 @@ describeDb('API integration', () => {
       body: JSON.stringify({ role: 'customer' }),
     });
     expect(self.status).toBe(400);
+  });
+
+  it('applies a promo code at checkout and enforces its usage limit', async () => {
+    const adminToken = await authToken(ADMIN_ID, 'Ivan');
+    const adminAuth = { Authorization: `Bearer ${adminToken}`, 'content-type': 'application/json' };
+    const customerToken = await authToken(CUSTOMER_ID, 'Alice');
+    const customerAuth = {
+      Authorization: `Bearer ${customerToken}`,
+      'content-type': 'application/json',
+    };
+
+    const createPromo = await app.request('/api/admin/promo-codes', {
+      method: 'POST',
+      headers: adminAuth,
+      body: JSON.stringify({ code: 'sale10', discountPercent: 10, maxUses: 1 }),
+    });
+    expect(createPromo.status).toBe(201);
+
+    await app.request('/api/cart/items', {
+      method: 'POST',
+      headers: customerAuth,
+      body: JSON.stringify({ productId, quantity: 1 }),
+    });
+
+    const preview = await app.request('/api/orders/promo-preview', {
+      method: 'POST',
+      headers: customerAuth,
+      body: JSON.stringify({ code: 'SALE10' }),
+    });
+    expect(preview.status).toBe(200);
+    const previewBody = (await preview.json()) as { discountAmount: number; total: number };
+    expect(previewBody.discountAmount).toBe(15);
+    expect(previewBody.total).toBe(135);
+
+    const create = await app.request('/api/orders', {
+      method: 'POST',
+      headers: customerAuth,
+      body: JSON.stringify({ promoCode: 'SALE10' }),
+    });
+    expect(create.status).toBe(201);
+    const { orderId } = (await create.json()) as { orderId: string };
+    const order = await app.request(`/api/orders/${orderId}`, { headers: customerAuth });
+    const orderBody = (await order.json()) as {
+      total: number;
+      discountAmount: number;
+      promoCode: string;
+    };
+    expect(orderBody.total).toBe(135);
+    expect(orderBody.discountAmount).toBe(15);
+    expect(orderBody.promoCode).toBe('SALE10');
+
+    // maxUses was 1 — a second redemption is rejected
+    await app.request('/api/cart/items', {
+      method: 'POST',
+      headers: customerAuth,
+      body: JSON.stringify({ productId, quantity: 1 }),
+    });
+    const secondUse = await app.request('/api/orders', {
+      method: 'POST',
+      headers: customerAuth,
+      body: JSON.stringify({ promoCode: 'SALE10' }),
+    });
+    expect(secondUse.status).toBe(400);
+  });
+
+  it('manages categories and the customer profile', async () => {
+    const adminToken = await authToken(ADMIN_ID, 'Ivan');
+    const adminAuth = { Authorization: `Bearer ${adminToken}`, 'content-type': 'application/json' };
+
+    const createCat = await app.request('/api/admin/categories', {
+      method: 'POST',
+      headers: adminAuth,
+      body: JSON.stringify({ slug: 'accessories', title: 'Accessories', sortOrder: 2 }),
+    });
+    expect(createCat.status).toBe(201);
+    const category = (await createCat.json()) as { id: string };
+
+    const rename = await app.request(`/api/admin/categories/${category.id}`, {
+      method: 'PUT',
+      headers: adminAuth,
+      body: JSON.stringify({ slug: 'accessories', title: 'Gear', sortOrder: 2 }),
+    });
+    expect(rename.status).toBe(200);
+    expect(((await rename.json()) as { title: string }).title).toBe('Gear');
+
+    const del = await app.request(`/api/admin/categories/${category.id}`, {
+      method: 'DELETE',
+      headers: adminAuth,
+    });
+    expect(del.status).toBe(204);
+
+    const customerToken = await authToken(CUSTOMER_ID, 'Alice');
+    const customerAuth = { Authorization: `Bearer ${customerToken}` };
+
+    const setAddress = await app.request('/api/profile/address', {
+      method: 'PATCH',
+      headers: { ...customerAuth, 'content-type': 'application/json' },
+      body: JSON.stringify({ address: 'Tashkent, Amir Temur 1' }),
+    });
+    expect(setAddress.status).toBe(200);
+    expect(((await setAddress.json()) as { address: string }).address).toBe(
+      'Tashkent, Amir Temur 1',
+    );
+
+    const rank = await app.request('/api/profile/rank', { headers: customerAuth });
+    expect(rank.status).toBe(200);
+    const rankBody = (await rank.json()) as { rank: number | null; ordersCount: number };
+    expect(rankBody.rank).toBe(1);
+    expect(rankBody.ordersCount).toBeGreaterThanOrEqual(1);
   });
 
   it('enforces admin-only routes', async () => {

@@ -1,7 +1,7 @@
-import { and, desc, eq, ne, sql } from 'drizzle-orm';
-import type { User, UserRole } from '@tma-shop/shared';
+import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
+import type { RankInfo, User, UserRole } from '@tma-shop/shared';
 import type { Database } from '../db/client.js';
-import { users } from '../db/schema.js';
+import { orders, users } from '../db/schema.js';
 import { toUserDTO } from '../db/mappers.js';
 import type { InitDataUser } from '../auth/init-data.js';
 import { ApiError } from '../lib/errors.js';
@@ -84,4 +84,49 @@ export async function setUserRole(db: Database, telegramId: number, role: UserRo
     .returning();
   if (!row) throw new Error('Failed to update user role');
   return toUserDTO(row);
+}
+
+export async function updateAddress(
+  db: Database,
+  telegramId: number,
+  address: string | null,
+): Promise<User> {
+  const [row] = await db
+    .update(users)
+    .set({ address })
+    .where(eq(users.telegramId, telegramId))
+    .returning();
+  if (!row) throw ApiError.notFound('User not found');
+  return toUserDTO(row);
+}
+
+/**
+ * The customer's position on the "top spenders" leaderboard: ranked by total
+ * amount paid (paid + fulfilled orders) within the shop, highest first.
+ */
+export async function getUserRank(
+  db: Database,
+  shopId: string,
+  telegramId: number,
+): Promise<RankInfo> {
+  const rows = await db
+    .select({
+      userId: orders.userId,
+      totalSpent: sql<number>`coalesce(sum(${orders.total}), 0)::int`,
+      ordersCount: sql<number>`count(*)::int`,
+    })
+    .from(orders)
+    .where(and(eq(orders.shopId, shopId), inArray(orders.status, ['paid', 'fulfilled'])))
+    .groupBy(orders.userId);
+
+  const ranked = rows.filter((r) => r.totalSpent > 0).sort((a, b) => b.totalSpent - a.totalSpent);
+  const index = ranked.findIndex((r) => r.userId === telegramId);
+  const mine = rows.find((r) => r.userId === telegramId);
+
+  return {
+    rank: index === -1 ? null : index + 1,
+    totalRanked: ranked.length,
+    totalSpent: mine?.totalSpent ?? 0,
+    ordersCount: mine?.ordersCount ?? 0,
+  };
 }

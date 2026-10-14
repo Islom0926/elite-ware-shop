@@ -25,6 +25,11 @@ export const updateCartItemRequest = z.object({
 export type UpdateCartItemRequest = z.infer<typeof updateCartItemRequest>;
 
 /** Order is created from the caller's current server-side cart. */
+export const createOrderRequest = z.object({
+  promoCode: z.string().trim().max(32).optional(),
+});
+export type CreateOrderRequest = z.infer<typeof createOrderRequest>;
+
 export const createOrderResponse = z.object({
   orderId: id,
 });

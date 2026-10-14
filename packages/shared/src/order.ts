@@ -29,6 +29,10 @@ export const order = z.object({
   items: z.array(orderItem).min(1),
   total: moneyAmount,
   currency: currencyCode,
+  /** Promo code applied at checkout, if any. */
+  promoCode: z.string().nullable(),
+  /** Amount deducted from the items subtotal by the promo code. */
+  discountAmount: moneyAmount,
   /** Telegram id of the admin who confirmed the manual payment. */
   confirmedBy: telegramUserId.nullable(),
   /** Customer-submitted payment proof, as a data URL. */

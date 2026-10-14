@@ -94,6 +94,47 @@ export interface Dictionary {
   bannerNoLink: string;
   bannerLinkedProduct: string;
   bannerAddFailed: string;
+  tabHome: string;
+  tabSearch: string;
+  tabCart: string;
+  tabProfile: string;
+  searchHint: string;
+  topRankLabel: string;
+  completedOrdersLabel: string;
+  pendingOrdersLabel: string;
+  totalSpentLabel: string;
+  viewAllOrders: string;
+  addressHeader: string;
+  addressPlaceholder: string;
+  saveAddress: string;
+  languageHeader: string;
+  promoCodeLabel: string;
+  promoCodePlaceholder: string;
+  applyPromo: string;
+  promoApplied: string;
+  promoInvalid: string;
+  discountLabel: string;
+  promoCodesHeader: string;
+  addPromoCode: string;
+  promoCodeValueLabel: string;
+  discountPercentLabel: string;
+  maxUsesLabel: string;
+  maxUsesPlaceholder: string;
+  promoCodeCreateFailed: string;
+  usedLabel: string;
+  unlimitedLabel: string;
+  manageProductsHeader: string;
+  editProduct: string;
+  deleteProduct: string;
+  productUpdateFailed: string;
+  productDeleteFailed: string;
+  saveChanges: string;
+  manageCategoriesHeader: string;
+  addCategory: string;
+  categorySaveFailed: string;
+  categoryDeleteFailed: string;
+  productCountLabel: string;
+  inactiveLabel: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -187,6 +228,47 @@ export const dictionaries: Record<Lang, Dictionary> = {
     bannerNoLink: "Bog'lanmagan",
     bannerLinkedProduct: 'Mahsulot',
     bannerAddFailed: 'Bannerni saqlab bo‘lmadi',
+    tabHome: 'Asosiy',
+    tabSearch: 'Qidiruv',
+    tabCart: 'Savat',
+    tabProfile: 'Profil',
+    searchHint: 'Mahsulot nomini yozing',
+    topRankLabel: 'Reyting',
+    completedOrdersLabel: 'Bajarilgan',
+    pendingOrdersLabel: 'Jarayonda',
+    totalSpentLabel: 'Jami xarid qilingan',
+    viewAllOrders: "Barcha buyurtmalarni ko'rish",
+    addressHeader: 'Yetkazib berish manzili',
+    addressPlaceholder: "Shahar, ko'cha, uy raqami...",
+    saveAddress: 'Manzilni saqlash',
+    languageHeader: 'Til',
+    promoCodeLabel: 'Promo-kod',
+    promoCodePlaceholder: 'Promo-kodni kiriting',
+    applyPromo: "Qo'llash",
+    promoApplied: "Promo-kod qo'llandi",
+    promoInvalid: "Promo-kod noto'g'ri yoki muddati o'tgan",
+    discountLabel: 'Chegirma',
+    promoCodesHeader: 'Promo-kodlar',
+    addPromoCode: "Promo-kod qo'shish",
+    promoCodeValueLabel: 'Kod',
+    discountPercentLabel: 'Chegirma (%)',
+    maxUsesLabel: 'Maksimal ishlatish soni (ixtiyoriy)',
+    maxUsesPlaceholder: 'Cheklanmagan',
+    promoCodeCreateFailed: 'Promo-kod yaratilmadi',
+    usedLabel: 'Ishlatilgan',
+    unlimitedLabel: 'Cheksiz',
+    manageProductsHeader: 'Mahsulotlarni boshqarish',
+    editProduct: 'Tahrirlash',
+    deleteProduct: "O'chirish",
+    productUpdateFailed: 'Saqlashda xatolik',
+    productDeleteFailed: "O'chirishda xatolik",
+    saveChanges: 'Saqlash',
+    manageCategoriesHeader: 'Kategoriyalar',
+    addCategory: "Kategoriya qo'shish",
+    categorySaveFailed: 'Saqlashda xatolik',
+    categoryDeleteFailed: "O'chirishda xatolik",
+    productCountLabel: 'mahsulot',
+    inactiveLabel: 'Nofaol',
   },
   ru: {
     cart: '🛒 Корзина',
@@ -278,6 +360,47 @@ export const dictionaries: Record<Lang, Dictionary> = {
     bannerNoLink: 'Без привязки',
     bannerLinkedProduct: 'Товар',
     bannerAddFailed: 'Не удалось сохранить баннер',
+    tabHome: 'Главная',
+    tabSearch: 'Поиск',
+    tabCart: 'Корзина',
+    tabProfile: 'Профиль',
+    searchHint: 'Введите название товара',
+    topRankLabel: 'Рейтинг',
+    completedOrdersLabel: 'Выполнено',
+    pendingOrdersLabel: 'В процессе',
+    totalSpentLabel: 'Всего куплено',
+    viewAllOrders: 'Смотреть все заказы',
+    addressHeader: 'Адрес доставки',
+    addressPlaceholder: 'Город, улица, дом...',
+    saveAddress: 'Сохранить адрес',
+    languageHeader: 'Язык',
+    promoCodeLabel: 'Промокод',
+    promoCodePlaceholder: 'Введите промокод',
+    applyPromo: 'Применить',
+    promoApplied: 'Промокод применён',
+    promoInvalid: 'Промокод неверен или истёк',
+    discountLabel: 'Скидка',
+    promoCodesHeader: 'Промокоды',
+    addPromoCode: 'Добавить промокод',
+    promoCodeValueLabel: 'Код',
+    discountPercentLabel: 'Скидка (%)',
+    maxUsesLabel: 'Максимум использований (необязательно)',
+    maxUsesPlaceholder: 'Без ограничений',
+    promoCodeCreateFailed: 'Не удалось создать промокод',
+    usedLabel: 'Использовано',
+    unlimitedLabel: 'Без лимита',
+    manageProductsHeader: 'Управление товарами',
+    editProduct: 'Редактировать',
+    deleteProduct: 'Удалить',
+    productUpdateFailed: 'Ошибка сохранения',
+    productDeleteFailed: 'Ошибка удаления',
+    saveChanges: 'Сохранить',
+    manageCategoriesHeader: 'Категории',
+    addCategory: 'Добавить категорию',
+    categorySaveFailed: 'Ошибка сохранения',
+    categoryDeleteFailed: 'Ошибка удаления',
+    productCountLabel: 'товаров',
+    inactiveLabel: 'Неактивен',
   },
 };
 

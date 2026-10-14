@@ -5,6 +5,7 @@ import {
   bannerInput,
   orderStatus,
   productInput,
+  promoCodeInput,
   setUserRoleRequest,
   slug,
   updateShopSettingsRequest,
@@ -16,10 +17,14 @@ import {
   createCategory,
   createProduct,
   deleteBanner,
+  deleteCategory,
   deleteProduct,
+  listAdminProducts,
+  updateCategory,
   updateProduct,
 } from '../services/admin.js';
 import { confirmOrderPaidManually, listAllOrders, setOrderStatus } from '../services/orders.js';
+import { createPromoCode, deletePromoCode, listPromoCodes } from '../services/promo.js';
 import { updateShopSettings } from '../services/shop.js';
 import { listUsers, setUserRole } from '../services/users.js';
 import { ApiError } from '../lib/errors.js';
@@ -59,11 +64,30 @@ export function adminRoutes(): Hono<AppBindings> {
     await deleteProduct(c.get('db'), c.get('shopId'), c.req.valid('param').id);
     return c.body(null, 204);
   });
+  app.get('/products', async (c) => c.json(await listAdminProducts(c.get('db'), c.get('shopId'))));
 
   // Categories
   app.post('/categories', zValidator('json', categoryInput), async (c) =>
     c.json(await createCategory(c.get('db'), c.get('shopId'), c.req.valid('json')), 201),
   );
+  app.put(
+    '/categories/:id',
+    zValidator('param', idParam),
+    zValidator('json', categoryInput),
+    async (c) =>
+      c.json(
+        await updateCategory(
+          c.get('db'),
+          c.get('shopId'),
+          c.req.valid('param').id,
+          c.req.valid('json'),
+        ),
+      ),
+  );
+  app.delete('/categories/:id', zValidator('param', idParam), async (c) => {
+    await deleteCategory(c.get('db'), c.get('shopId'), c.req.valid('param').id);
+    return c.body(null, 204);
+  });
 
   // Banners
   app.post('/banners', zValidator('json', bannerInput), async (c) =>
@@ -95,6 +119,16 @@ export function adminRoutes(): Hono<AppBindings> {
       return c.json(order);
     },
   );
+
+  // Promo codes
+  app.get('/promo-codes', async (c) => c.json(await listPromoCodes(c.get('db'), c.get('shopId'))));
+  app.post('/promo-codes', zValidator('json', promoCodeInput), async (c) =>
+    c.json(await createPromoCode(c.get('db'), c.get('shopId'), c.req.valid('json')), 201),
+  );
+  app.delete('/promo-codes/:id', zValidator('param', idParam), async (c) => {
+    await deletePromoCode(c.get('db'), c.get('shopId'), c.req.valid('param').id);
+    return c.body(null, 204);
+  });
 
   // Admin management
   app.get('/users', async (c) => c.json(await listUsers(c.get('db'))));

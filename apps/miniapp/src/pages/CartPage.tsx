@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Cell, List, Placeholder, Section } from '@telegram-apps/telegram-ui';
+import { Button, Cell, Input, List, Placeholder, Section } from '@telegram-apps/telegram-ui';
+import type { PromoPreview } from '@tma-shop/shared';
 import { api, ApiClientError } from '../api/client.js';
 import { useCart } from '../providers/CartProvider.js';
 import { useMainButton } from '../hooks/useMainButton.js';
@@ -14,25 +15,44 @@ export function CartPage(): React.JSX.Element {
   const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState<PromoPreview | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
+  const applyPromo = useCallback(async () => {
+    if (!promoInput.trim()) return;
+    setPromoBusy(true);
+    setPromoError(null);
+    try {
+      setPromo(await api.previewPromoCode(promoInput.trim()));
+    } catch (err) {
+      setPromo(null);
+      setPromoError(err instanceof ApiClientError ? err.message : t('promoInvalid'));
+    } finally {
+      setPromoBusy(false);
+    }
+  }, [promoInput, t]);
 
   const checkout = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const { orderId } = await api.createOrder();
+      const { orderId } = await api.createOrder(promo?.code);
       navigate(`/pay/${orderId}`);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : t('orderCreateFailed'));
     } finally {
       setBusy(false);
     }
-  }, [navigate, t]);
+  }, [navigate, t, promo]);
 
   const hasItems = (cart?.lines.length ?? 0) > 0;
+  const finalTotal = promo ? promo.total : (cart?.total ?? 0);
 
   useMainButton({
     text: cart
-      ? t('checkoutWithPrice', { price: formatPrice(cart.total, cart.currency) })
+      ? t('checkoutWithPrice', { price: formatPrice(finalTotal, cart.currency) })
       : t('checkout'),
     visible: hasItems,
     loading: busy,
@@ -90,8 +110,49 @@ export function CartPage(): React.JSX.Element {
           </Cell>
         ))}
       </Section>
+
+      <Section header={t('promoCodeLabel')}>
+        {promoError && (
+          <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{promoError}</Cell>
+        )}
+        {promo ? (
+          <Cell after={`-${formatPrice(promo.discountAmount, cart?.currency ?? '')}`}>
+            {promo.code} · {t('promoApplied')}
+          </Cell>
+        ) : (
+          <>
+            <Input
+              placeholder={t('promoCodePlaceholder')}
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value)}
+            />
+            <div style={{ padding: 16 }}>
+              <Button
+                stretched
+                mode="bezeled"
+                loading={promoBusy}
+                disabled={!promoInput.trim()}
+                onClick={() => void applyPromo()}
+              >
+                {t('applyPromo')}
+              </Button>
+            </div>
+          </>
+        )}
+      </Section>
+
       <Section>
-        <Cell after={cart ? formatPrice(cart.total, cart.currency) : ''}>{t('total')}</Cell>
+        {promo && (
+          <Cell after={cart ? formatPrice(cart.total, cart.currency) : ''}>
+            {t('cart')} · {t('total')}
+          </Cell>
+        )}
+        {promo && (
+          <Cell after={`-${formatPrice(promo.discountAmount, cart?.currency ?? '')}`}>
+            {t('discountLabel')}
+          </Cell>
+        )}
+        <Cell after={cart ? formatPrice(finalTotal, cart.currency) : ''}>{t('total')}</Cell>
       </Section>
     </List>
   );

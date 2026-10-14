@@ -94,8 +94,28 @@ export const users = pgTable('users', {
   isPremium: boolean('is_premium').notNull().default(false),
   photoUrl: text('photo_url'),
   role: userRoleEnum('role').notNull().default('customer'),
+  /** Delivery address the customer entered in their profile. */
+  address: text('address'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const promoCodes = pgTable(
+  'promo_codes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    shopId: uuid('shop_id')
+      .notNull()
+      .references(() => shops.id, { onDelete: 'cascade' }),
+    code: text('code').notNull(),
+    discountPercent: integer('discount_percent').notNull(),
+    /** NULL means unlimited uses. */
+    maxUses: integer('max_uses'),
+    usedCount: integer('used_count').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique('promo_codes_shop_code_unique').on(table.shopId, table.code)],
+);
 
 export const carts = pgTable(
   'carts',
@@ -137,8 +157,13 @@ export const orders = pgTable('orders', {
     .notNull()
     .references(() => users.telegramId, { onDelete: 'cascade' }),
   status: orderStatusEnum('status').notNull().default('pending'),
+  /** Final charged amount, after any promo code discount. */
   total: integer('total').notNull(),
   currency: text('currency').notNull(),
+  /** Promo code applied at checkout, if any. */
+  promoCode: text('promo_code'),
+  /** Amount deducted from the items subtotal by the promo code. */
+  discountAmount: integer('discount_amount').notNull().default(0),
   /** Telegram id of the admin who confirmed the manual payment. */
   confirmedBy: bigint('confirmed_by', { mode: 'number' }),
   /** Customer-submitted payment proof, stored as a data URL (base64 image). */

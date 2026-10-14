@@ -36,6 +36,79 @@
   --tg-theme-destructive-text-color: #ff6b6b;
 }
 
+/* "Liquid glass" surfaces: translucent, blurred panels over the white/dark base. */
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 24px rgba(17, 24, 42, 0.08);
+}
+
+[data-theme='dark'] {
+  --glass-bg: rgba(23, 26, 33, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
 body {
   margin: 0;
+}
+
+/* Subtle, consistent motion for interactive/animated icons across the app. */
+.press-anim {
+  transition:
+    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.15s ease;
+}
+.press-anim:active {
+  transform: scale(0.9);
+  opacity: 0.8;
+}
+
+@keyframes eliteware-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pop-in {
+  animation: eliteware-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes eliteware-fade-up {
+  0% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.fade-up {
+  animation: eliteware-fade-up 0.3s ease both;
+}
+
+@keyframes eliteware-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+.pulse-anim {
+  animation: eliteware-pulse 1.6s ease-in-out infinite;
 }

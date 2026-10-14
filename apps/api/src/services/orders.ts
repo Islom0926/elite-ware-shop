@@ -1,8 +1,9 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
-import type { Order } from '@tma-shop/shared';
-import type { Database } from '../db/client.js';
-import { cartItems, orderItems, orders, products, shops } from '../db/schema.js';
+import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import type { Order, PromoPreview } from '@tma-shop/shared';
+import type { Database, DbClient } from '../db/client.js';
+import { cartItems, orderItems, orders, products, promoCodes, shops } from '../db/schema.js';
 import { toOrderDTO } from '../db/mappers.js';
+import { computeDiscount, findRedeemablePromoCode } from './promo.js';
 import { ApiError } from '../lib/errors.js';
 
 type OrderItemRow = typeof orderItems.$inferSelect;
@@ -54,38 +55,94 @@ export function buildOrderDraft(lines: DraftLine[]): OrderDraft {
   return { items, total: items.reduce((sum, item) => sum + item.subtotal, 0) };
 }
 
+async function loadCartDraft(
+  tx: DbClient,
+  shopId: string,
+  userId: number,
+): Promise<{ cartId: string | null; draft: OrderDraft }> {
+  const cart = await tx.query.carts.findFirst({
+    where: (c, { and: andOp, eq: eqOp }) => andOp(eqOp(c.shopId, shopId), eqOp(c.userId, userId)),
+  });
+  const lines = cart
+    ? await tx
+        .select({ item: cartItems, product: products })
+        .from(cartItems)
+        .innerJoin(products, eq(cartItems.productId, products.id))
+        .where(eq(cartItems.cartId, cart.id))
+    : [];
+
+  const draft = buildOrderDraft(
+    lines
+      .filter((l) => l.product.isActive)
+      .map((l) => ({
+        productId: l.product.id,
+        title: l.product.title,
+        unitPrice: l.product.price,
+        quantity: l.item.quantity,
+        stock: l.product.stock,
+      })),
+  );
+  return { cartId: cart?.id ?? null, draft };
+}
+
+/** Computes the discount a promo code would give on the caller's current cart. */
+export async function previewPromoCode(
+  db: Database,
+  shopId: string,
+  userId: number,
+  code: string,
+): Promise<PromoPreview> {
+  const [{ draft }, promo] = await Promise.all([
+    loadCartDraft(db, shopId, userId),
+    findRedeemablePromoCode(db, shopId, code),
+  ]);
+  const discountAmount = computeDiscount(draft.total, promo.discountPercent);
+  return {
+    code: promo.code,
+    discountPercent: promo.discountPercent,
+    subtotal: draft.total,
+    discountAmount,
+    total: draft.total - discountAmount,
+  };
+}
+
 /** Creates an order from the user's current cart inside a single transaction. */
 export async function createOrderFromCart(
   db: Database,
   shopId: string,
   userId: number,
+  promoCode?: string,
 ): Promise<Order> {
   return db.transaction(async (tx) => {
     const shop = await tx.query.shops.findFirst({ where: eq(shops.id, shopId) });
     if (!shop) throw ApiError.notFound('Shop not found');
 
-    const cart = await tx.query.carts.findFirst({
-      where: (c, { and: andOp, eq: eqOp }) => andOp(eqOp(c.shopId, shopId), eqOp(c.userId, userId)),
-    });
-    const lines = cart
-      ? await tx
-          .select({ item: cartItems, product: products })
-          .from(cartItems)
-          .innerJoin(products, eq(cartItems.productId, products.id))
-          .where(eq(cartItems.cartId, cart.id))
-      : [];
+    const { cartId, draft } = await loadCartDraft(tx, shopId, userId);
 
-    const draft = buildOrderDraft(
-      lines
-        .filter((l) => l.product.isActive)
-        .map((l) => ({
-          productId: l.product.id,
-          title: l.product.title,
-          unitPrice: l.product.price,
-          quantity: l.item.quantity,
-          stock: l.product.stock,
-        })),
-    );
+    let discountAmount = 0;
+    let redeemedCode: string | null = null;
+    if (promoCode) {
+      const promo = await findRedeemablePromoCode(tx, shopId, promoCode);
+      discountAmount = computeDiscount(draft.total, promo.discountPercent);
+      const [redeemed] = await tx
+        .update(promoCodes)
+        .set({ usedCount: sql`${promoCodes.usedCount} + 1` })
+        .where(
+          and(
+            eq(promoCodes.id, promo.id),
+            eq(promoCodes.isActive, true),
+            or(isNull(promoCodes.maxUses), lt(promoCodes.usedCount, promoCodes.maxUses)),
+          ),
+        )
+        .returning({ id: promoCodes.id });
+      if (!redeemed) {
+        throw ApiError.badRequest(
+          'promo_code_exhausted',
+          'This promo code has been fully redeemed',
+        );
+      }
+      redeemedCode = promo.code;
+    }
 
     const [order] = await tx
       .insert(orders)
@@ -93,14 +150,16 @@ export async function createOrderFromCart(
         shopId,
         userId,
         status: 'pending',
-        total: draft.total,
+        total: draft.total - discountAmount,
         currency: shop.currency,
+        promoCode: redeemedCode,
+        discountAmount,
       })
       .returning();
     if (!order) throw new Error('Failed to create order');
 
     await tx.insert(orderItems).values(draft.items.map((item) => ({ orderId: order.id, ...item })));
-    if (cart) await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+    if (cartId) await tx.delete(cartItems).where(eq(cartItems.cartId, cartId));
 
     return toOrderDTO(
       order,

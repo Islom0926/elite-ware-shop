@@ -1,9 +1,19 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { Banner, BannerInput, Category, Product, ProductInput } from '@tma-shop/shared';
 import type { Database } from '../db/client.js';
 import { banners, categories, products } from '../db/schema.js';
 import { toBannerDTO, toCategoryDTO, toProductDTO } from '../db/mappers.js';
 import { ApiError } from '../lib/errors.js';
+
+/** Lists every product (including inactive ones), for the admin product manager. */
+export async function listAdminProducts(db: Database, shopId: string): Promise<Product[]> {
+  const rows = await db
+    .select()
+    .from(products)
+    .where(eq(products.shopId, shopId))
+    .orderBy(desc(products.createdAt));
+  return rows.map(toProductDTO);
+}
 
 export async function createProduct(
   db: Database,
@@ -56,6 +66,33 @@ export async function createCategory(
     .returning();
   if (!row) throw new Error('Failed to create category');
   return toCategoryDTO(row);
+}
+
+export async function updateCategory(
+  db: Database,
+  shopId: string,
+  categoryId: string,
+  input: { slug: string; title: string; sortOrder: number },
+): Promise<Category> {
+  const [row] = await db
+    .update(categories)
+    .set({ ...input })
+    .where(and(eq(categories.shopId, shopId), eq(categories.id, categoryId)))
+    .returning();
+  if (!row) throw ApiError.notFound('Category not found');
+  return toCategoryDTO(row);
+}
+
+export async function deleteCategory(
+  db: Database,
+  shopId: string,
+  categoryId: string,
+): Promise<void> {
+  const deleted = await db
+    .delete(categories)
+    .where(and(eq(categories.shopId, shopId), eq(categories.id, categoryId)))
+    .returning({ id: categories.id });
+  if (deleted.length === 0) throw ApiError.notFound('Category not found');
 }
 
 export async function createBanner(

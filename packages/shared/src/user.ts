@@ -16,6 +16,7 @@ export const user = z.object({
   isPremium: z.boolean(),
   photoUrl: z.url().nullable(),
   role: userRole,
+  address: z.string().max(512).nullable(),
   createdAt: isoDateTime,
 });
 export type User = z.infer<typeof user>;
@@ -30,6 +31,7 @@ export const sessionUser = user.pick({
   isPremium: true,
   photoUrl: true,
   role: true,
+  address: true,
 });
 export type SessionUser = z.infer<typeof sessionUser>;
 
@@ -37,3 +39,17 @@ export const setUserRoleRequest = z.object({
   role: userRole,
 });
 export type SetUserRoleRequest = z.infer<typeof setUserRoleRequest>;
+
+export const updateAddressRequest = z.object({
+  address: z.string().trim().max(512).nullable(),
+});
+export type UpdateAddressRequest = z.infer<typeof updateAddressRequest>;
+
+/** The customer's position on the "top spenders" leaderboard. */
+export const rankInfo = z.object({
+  rank: z.number().int().positive().nullable(),
+  totalRanked: z.number().int().nonnegative(),
+  totalSpent: z.number().int().nonnegative(),
+  ordersCount: z.number().int().nonnegative(),
+});
+export type RankInfo = z.infer<typeof rankInfo>;

@@ -7,8 +7,12 @@ import type {
   Category,
   CreateOrderResponse,
   Order,
+  PromoCode,
+  PromoCodeInput,
+  PromoPreview,
   Product,
   ProductInput,
+  RankInfo,
   ShopConfig,
   UpdateShopSettingsRequest,
   User,
@@ -117,8 +121,18 @@ export class ApiClient {
   }
 
   // --- orders & payment ---
-  createOrder(): Promise<CreateOrderResponse> {
-    return this.request<CreateOrderResponse>('/orders', { method: 'POST' });
+  createOrder(promoCode?: string): Promise<CreateOrderResponse> {
+    return this.request<CreateOrderResponse>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(promoCode ? { promoCode } : {}),
+    });
+  }
+
+  previewPromoCode(code: string): Promise<PromoPreview> {
+    return this.request<PromoPreview>('/orders/promo-preview', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
   }
 
   getOrders(): Promise<Order[]> {
@@ -182,6 +196,77 @@ export class ApiClient {
 
   adminDeleteBanner(id: string): Promise<void> {
     return this.request<void>(`/admin/banners/${id}`, { method: 'DELETE' });
+  }
+
+  adminListProducts(): Promise<Product[]> {
+    return this.request<Product[]>('/admin/products');
+  }
+
+  adminUpdateProduct(id: string, input: ProductInput): Promise<Product> {
+    return this.request<Product>(`/admin/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  adminDeleteProduct(id: string): Promise<void> {
+    return this.request<void>(`/admin/products/${id}`, { method: 'DELETE' });
+  }
+
+  adminCreateCategory(input: {
+    slug: string;
+    title: string;
+    sortOrder: number;
+  }): Promise<Category> {
+    return this.request<Category>('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  adminUpdateCategory(
+    id: string,
+    input: { slug: string; title: string; sortOrder: number },
+  ): Promise<Category> {
+    return this.request<Category>(`/admin/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  adminDeleteCategory(id: string): Promise<void> {
+    return this.request<void>(`/admin/categories/${id}`, { method: 'DELETE' });
+  }
+
+  adminListPromoCodes(): Promise<PromoCode[]> {
+    return this.request<PromoCode[]>('/admin/promo-codes');
+  }
+
+  adminCreatePromoCode(input: PromoCodeInput): Promise<PromoCode> {
+    return this.request<PromoCode>('/admin/promo-codes', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  adminDeletePromoCode(id: string): Promise<void> {
+    return this.request<void>(`/admin/promo-codes/${id}`, { method: 'DELETE' });
+  }
+
+  // --- profile ---
+  getProfile(): Promise<User> {
+    return this.request<User>('/profile');
+  }
+
+  updateAddress(address: string | null): Promise<User> {
+    return this.request<User>('/profile/address', {
+      method: 'PATCH',
+      body: JSON.stringify({ address }),
+    });
+  }
+
+  getRank(): Promise<RankInfo> {
+    return this.request<RankInfo>('/profile/rank');
   }
 }
 

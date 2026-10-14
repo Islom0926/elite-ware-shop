@@ -1,10 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Cell, Input, List, Section } from '@telegram-apps/telegram-ui';
+import { Button, Cell, Input, List, Section } from '@telegram-apps/telegram-ui';
 import { api } from '../api/client.js';
 import { useAsync } from '../hooks/useAsync.js';
-import { useCart } from '../providers/CartProvider.js';
-import { useSession } from '../providers/SessionProvider.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
 import { ProductCard } from '../components/ProductCard.js';
@@ -13,9 +10,6 @@ import { useLang } from '../i18n/LanguageProvider.js';
 import { LANGS } from '../i18n/translations.js';
 
 export function CatalogPage(): React.JSX.Element {
-  const navigate = useNavigate();
-  const { itemCount } = useCart();
-  const { isAdmin } = useSession();
   const { t, lang, setLang } = useLang();
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
@@ -46,17 +40,6 @@ export function CatalogPage(): React.JSX.Element {
       </div>
 
       {banners.data && banners.data.length > 0 && <BannerCarousel banners={banners.data} />}
-
-      <Section>
-        <Cell
-          onClick={() => navigate('/cart')}
-          after={itemCount > 0 ? <Badge type="number">{itemCount}</Badge> : undefined}
-        >
-          {t('cart')}
-        </Cell>
-        <Cell onClick={() => navigate('/orders')}>{t('myOrders')}</Cell>
-        {isAdmin && <Cell onClick={() => navigate('/admin')}>{t('admin')}</Cell>}
-      </Section>
 
       <Section>
         <div style={{ display: 'flex', gap: 8, padding: '8px 16px', flexWrap: 'wrap' }}>
@@ -109,6 +92,7 @@ export function CatalogPage(): React.JSX.Element {
           </Section>
         ) : (
           <div
+            className="fade-up"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',

@@ -11,6 +11,7 @@ export function ProductCard({ product }: { product: Product }): React.JSX.Elemen
   return (
     <button
       type="button"
+      className="press-anim"
       onClick={() => navigate(`/product/${product.id}`)}
       style={{
         display: 'flex',

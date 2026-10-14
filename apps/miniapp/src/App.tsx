@@ -7,11 +7,14 @@ import { CartProvider } from './providers/CartProvider.js';
 import { LanguageProvider, useLang } from './i18n/LanguageProvider.js';
 import { useBackButton } from './hooks/useBackButton.js';
 import { Loader } from './components/Loader.js';
+import { TabBar } from './components/TabBar.js';
 import { CatalogPage } from './pages/CatalogPage.js';
 import { ProductPage } from './pages/ProductPage.js';
+import { SearchPage } from './pages/SearchPage.js';
 import { CartPage } from './pages/CartPage.js';
 import { PaymentPage } from './pages/PaymentPage.js';
 import { OrdersPage } from './pages/OrdersPage.js';
+import { ProfilePage } from './pages/ProfilePage.js';
 import { AdminPage } from './pages/AdminPage.js';
 
 function platform(): 'ios' | 'base' {
@@ -37,15 +40,22 @@ function Shell(): React.JSX.Element {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<CatalogPage />} />
-      <Route path="/product/:id" element={<ProductPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/pay/:id" element={<PaymentPage />} />
-      <Route path="/orders" element={<OrdersPage />} />
-      <Route path="/admin" element={<AdminPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <div style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' }}>
+        <Routes>
+          <Route path="/" element={<CatalogPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/pay/:id" element={<PaymentPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+      <TabBar />
+    </>
   );
 }
 

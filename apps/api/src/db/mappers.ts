@@ -4,11 +4,21 @@ import type {
   Order,
   OrderItem,
   Product,
+  PromoCode,
   SessionUser,
   ShopConfig,
   User,
 } from '@tma-shop/shared';
-import type { banners, categories, orderItems, orders, products, shops, users } from './schema.js';
+import type {
+  banners,
+  categories,
+  orderItems,
+  orders,
+  products,
+  promoCodes,
+  shops,
+  users,
+} from './schema.js';
 
 type ProductRow = typeof products.$inferSelect;
 type CategoryRow = typeof categories.$inferSelect;
@@ -17,6 +27,7 @@ type UserRow = typeof users.$inferSelect;
 type OrderRow = typeof orders.$inferSelect;
 type OrderItemRow = typeof orderItems.$inferSelect;
 type BannerRow = typeof banners.$inferSelect;
+type PromoCodeRow = typeof promoCodes.$inferSelect;
 
 export function toProductDTO(row: ProductRow): Product {
   return {
@@ -78,6 +89,7 @@ export function toSessionUserDTO(row: UserRow): SessionUser {
     isPremium: row.isPremium,
     photoUrl: row.photoUrl,
     role: row.role,
+    address: row.address,
   };
 }
 
@@ -91,6 +103,20 @@ export function toUserDTO(row: UserRow): User {
     isPremium: row.isPremium,
     photoUrl: row.photoUrl,
     role: row.role,
+    address: row.address,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export function toPromoCodeDTO(row: PromoCodeRow): PromoCode {
+  return {
+    id: row.id,
+    shopId: row.shopId,
+    code: row.code,
+    discountPercent: row.discountPercent,
+    maxUses: row.maxUses,
+    usedCount: row.usedCount,
+    isActive: row.isActive,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -114,6 +140,8 @@ export function toOrderDTO(row: OrderRow, items: OrderItemRow[]): Order {
     items: items.map(toOrderItemDTO),
     total: row.total,
     currency: row.currency,
+    promoCode: row.promoCode,
+    discountAmount: row.discountAmount,
     confirmedBy: row.confirmedBy,
     receiptImage: row.receiptImage,
     createdAt: row.createdAt.toISOString(),

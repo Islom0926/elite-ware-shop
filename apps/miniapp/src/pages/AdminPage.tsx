@@ -1,6 +1,14 @@
 import { useRef, useState } from 'react';
 import { Badge, Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui';
-import type { Banner, OrderStatus, Product, ProductInput, ShopConfig } from '@tma-shop/shared';
+import type {
+  Banner,
+  Category,
+  OrderStatus,
+  Product,
+  ProductInput,
+  PromoCode,
+  ShopConfig,
+} from '@tma-shop/shared';
 import { api, ApiClientError } from '../api/client.js';
 import { useAsync } from '../hooks/useAsync.js';
 import { useSession } from '../providers/SessionProvider.js';
@@ -39,7 +47,10 @@ export function AdminPage(): React.JSX.Element {
     <List>
       <ShopSettingsForm shop={shop.data} onSaved={reload} />
       <BannersManager />
+      <CategoriesManager />
       <NewProductForm currency={shop.data?.currency ?? 'UZS'} onCreated={reload} />
+      <ProductsManager currency={shop.data?.currency ?? 'UZS'} />
+      <PromoCodesManager />
 
       <Section header={t('allOrders')}>
         {orders.loading && <Loader />}
@@ -293,6 +304,362 @@ function BannersManager(): React.JSX.Element {
       <div style={{ padding: 16 }}>
         <Button stretched loading={busy} onClick={() => fileInputRef.current?.click()}>
           {t('addBanner')}
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
+function CategoriesManager(): React.JSX.Element {
+  const { t } = useLang();
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const categories = useAsync(() => api.getCategories(), [reloadKey]);
+  const products = useAsync(() => api.adminListProducts(), [reloadKey]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [newSlug, setNewSlug] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const countFor = (categoryId: string): number =>
+    products.data?.filter((p: Product) => p.categoryId === categoryId).length ?? 0;
+
+  const startEdit = (category: Category): void => {
+    setEditingId(category.id);
+    setEditTitle(category.title);
+  };
+
+  const saveEdit = async (category: Category): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api.adminUpdateCategory(category.id, {
+        slug: category.slug,
+        title: editTitle.trim(),
+        sortOrder: category.sortOrder,
+      });
+      setEditingId(null);
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('categorySaveFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api.adminDeleteCategory(id);
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('categoryDeleteFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const create = async (): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api.adminCreateCategory({
+        slug: newSlug.trim(),
+        title: newTitle.trim(),
+        sortOrder: categories.data?.length ?? 0,
+      });
+      setNewSlug('');
+      setNewTitle('');
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('categorySaveFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section header={t('manageCategoriesHeader')}>
+      {categories.loading && <Loader />}
+      {categories.error && <ErrorView message={categories.error} />}
+      {message && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{message}</Cell>}
+      {categories.data?.map((category) =>
+        editingId === category.id ? (
+          <Cell
+            key={category.id}
+            after={
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Button size="s" loading={busy} onClick={() => void saveEdit(category)}>
+                  {t('saveChanges')}
+                </Button>
+                <Button size="s" mode="plain" onClick={() => setEditingId(null)}>
+                  {t('cancel')}
+                </Button>
+              </div>
+            }
+          >
+            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+          </Cell>
+        ) : (
+          <Cell
+            key={category.id}
+            subtitle={`${countFor(category.id)} ${t('productCountLabel')}`}
+            after={
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Button size="s" mode="bezeled" onClick={() => startEdit(category)}>
+                  {t('editProduct')}
+                </Button>
+                <Button
+                  size="s"
+                  mode="plain"
+                  loading={busy}
+                  onClick={() => void remove(category.id)}
+                >
+                  {t('deleteProduct')}
+                </Button>
+              </div>
+            }
+          >
+            {category.title}
+          </Cell>
+        ),
+      )}
+
+      <Input
+        header={t('titleLabel')}
+        value={newTitle}
+        onChange={(e) => setNewTitle(e.target.value)}
+      />
+      <Input header={t('slugLabel')} value={newSlug} onChange={(e) => setNewSlug(e.target.value)} />
+      <div style={{ padding: 16 }}>
+        <Button
+          stretched
+          loading={busy}
+          disabled={!newSlug || !newTitle}
+          onClick={() => void create()}
+        >
+          {t('addCategory')}
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
+function ProductsManager({ currency }: { currency: string }): React.JSX.Element {
+  const { t } = useLang();
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const products = useAsync(() => api.adminListProducts(), [reloadKey]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const startEdit = (product: Product): void => {
+    setEditingId(product.id);
+    setEditTitle(product.title);
+    setEditPrice(String(product.price));
+  };
+
+  const saveEdit = async (product: Product): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    const input: ProductInput = {
+      categoryId: product.categoryId,
+      slug: product.slug,
+      title: editTitle.trim(),
+      description: product.description,
+      price: Number(editPrice) || 0,
+      currency: product.currency,
+      imageUrl: product.imageUrl,
+      stock: product.stock,
+      isActive: product.isActive,
+    };
+    try {
+      await api.adminUpdateProduct(product.id, input);
+      setEditingId(null);
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('productUpdateFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api.adminDeleteProduct(id);
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('productDeleteFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section header={t('manageProductsHeader')}>
+      {products.loading && <Loader />}
+      {products.error && <ErrorView message={products.error} />}
+      {message && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{message}</Cell>}
+      {products.data?.map((product: Product) =>
+        editingId === product.id ? (
+          <Cell
+            key={product.id}
+            description={
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+                <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                <Input
+                  type="number"
+                  value={editPrice}
+                  onChange={(e) => setEditPrice(e.target.value)}
+                />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <Button size="s" loading={busy} onClick={() => void saveEdit(product)}>
+                    {t('saveChanges')}
+                  </Button>
+                  <Button size="s" mode="plain" onClick={() => setEditingId(null)}>
+                    {t('cancel')}
+                  </Button>
+                </div>
+              </div>
+            }
+            multiline
+          >
+            {product.title}
+          </Cell>
+        ) : (
+          <Cell
+            key={product.id}
+            before={
+              product.imageUrl ? (
+                <img
+                  src={product.imageUrl}
+                  alt=""
+                  style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8 }}
+                />
+              ) : undefined
+            }
+            subtitle={`${formatPrice(product.price, currency)}${product.isActive ? '' : ` · ${t('inactiveLabel')}`}`}
+            after={
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Button size="s" mode="bezeled" onClick={() => startEdit(product)}>
+                  {t('editProduct')}
+                </Button>
+                <Button
+                  size="s"
+                  mode="plain"
+                  loading={busy}
+                  onClick={() => void remove(product.id)}
+                >
+                  {t('deleteProduct')}
+                </Button>
+              </div>
+            }
+            multiline
+          >
+            {product.title}
+          </Cell>
+        ),
+      )}
+    </Section>
+  );
+}
+
+function PromoCodesManager(): React.JSX.Element {
+  const { t } = useLang();
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const promoCodes = useAsync(() => api.adminListPromoCodes(), [reloadKey]);
+  const [code, setCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState('');
+  const [maxUses, setMaxUses] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const create = async (): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api.adminCreatePromoCode({
+        code: code.trim(),
+        discountPercent: Number(discountPercent) || 0,
+        maxUses: maxUses.trim() ? Number(maxUses) : null,
+      });
+      setCode('');
+      setDiscountPercent('');
+      setMaxUses('');
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('promoCodeCreateFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string): Promise<void> => {
+    setBusy(true);
+    try {
+      await api.adminDeletePromoCode(id);
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('promoCodeCreateFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section header={t('promoCodesHeader')}>
+      {promoCodes.loading && <Loader />}
+      {promoCodes.error && <ErrorView message={promoCodes.error} />}
+      {message && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{message}</Cell>}
+      {promoCodes.data?.map((promo: PromoCode) => (
+        <Cell
+          key={promo.id}
+          subtitle={`${promo.discountPercent}% · ${t('usedLabel')}: ${promo.usedCount}/${promo.maxUses ?? t('unlimitedLabel')}`}
+          after={
+            <Button size="s" mode="plain" loading={busy} onClick={() => void remove(promo.id)}>
+              {t('remove')}
+            </Button>
+          }
+        >
+          {promo.code}
+        </Cell>
+      ))}
+
+      <Input
+        header={t('promoCodeValueLabel')}
+        value={code}
+        onChange={(e) => setCode(e.target.value.toUpperCase())}
+      />
+      <Input
+        header={t('discountPercentLabel')}
+        type="number"
+        value={discountPercent}
+        onChange={(e) => setDiscountPercent(e.target.value)}
+      />
+      <Input
+        header={t('maxUsesLabel')}
+        placeholder={t('maxUsesPlaceholder')}
+        type="number"
+        value={maxUses}
+        onChange={(e) => setMaxUses(e.target.value)}
+      />
+      <div style={{ padding: 16 }}>
+        <Button
+          stretched
+          loading={busy}
+          disabled={!code.trim() || !discountPercent}
+          onClick={() => void create()}
+        >
+          {t('addPromoCode')}
         </Button>
       </div>
     </Section>

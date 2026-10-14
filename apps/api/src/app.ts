@@ -8,6 +8,7 @@ import { catalogRoutes } from './routes/catalog.js';
 import { cartRoutes } from './routes/cart.js';
 import { orderRoutes } from './routes/orders.js';
 import { adminRoutes } from './routes/admin.js';
+import { profileRoutes } from './routes/profile.js';
 
 export function createApp(deps: AppDeps): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -45,6 +46,7 @@ export function createApp(deps: AppDeps): Hono<AppBindings> {
   api.route('/cart', cartRoutes());
   api.route('/orders', orderRoutes());
   api.route('/admin', adminRoutes());
+  api.route('/profile', profileRoutes());
 
   app.route('/api', api);
 
