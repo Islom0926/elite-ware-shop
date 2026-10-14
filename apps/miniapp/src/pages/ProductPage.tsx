@@ -44,6 +44,13 @@ export function ProductPage(): React.JSX.Element {
 
   return (
     <List>
+      {product.imageUrl && (
+        <img
+          src={product.imageUrl}
+          alt={product.title}
+          style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
+        />
+      )}
       <Section>
         <div style={{ padding: 16 }}>
           <Title level="2" weight="2">

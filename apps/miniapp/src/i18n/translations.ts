@@ -87,6 +87,13 @@ export interface Dictionary {
   addAdmin: string;
   invalidTelegramId: string;
   roleChangeFailed: string;
+  bannersHeader: string;
+  addBanner: string;
+  bannerLinkProductLabel: string;
+  bannerLinkProductPlaceholder: string;
+  bannerNoLink: string;
+  bannerLinkedProduct: string;
+  bannerAddFailed: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -173,6 +180,13 @@ export const dictionaries: Record<Lang, Dictionary> = {
     addAdmin: "Qo'shish",
     invalidTelegramId: "Telegram ID noto'g'ri",
     roleChangeFailed: 'Amal bajarilmadi',
+    bannersHeader: 'Bannerlar',
+    addBanner: "Banner qo'shish",
+    bannerLinkProductLabel: "Mahsulotga bog'lash (ixtiyoriy)",
+    bannerLinkProductPlaceholder: 'Mahsulotni tanlang yoki ID kiriting',
+    bannerNoLink: "Bog'lanmagan",
+    bannerLinkedProduct: 'Mahsulot',
+    bannerAddFailed: 'Bannerni saqlab bo‘lmadi',
   },
   ru: {
     cart: '🛒 Корзина',
@@ -257,6 +271,13 @@ export const dictionaries: Record<Lang, Dictionary> = {
     addAdmin: 'Добавить',
     invalidTelegramId: 'Неверный Telegram ID',
     roleChangeFailed: 'Не удалось выполнить действие',
+    bannersHeader: 'Баннеры',
+    addBanner: 'Добавить баннер',
+    bannerLinkProductLabel: 'Привязать к товару (необязательно)',
+    bannerLinkProductPlaceholder: 'Выберите товар или введите ID',
+    bannerNoLink: 'Без привязки',
+    bannerLinkedProduct: 'Товар',
+    bannerAddFailed: 'Не удалось сохранить баннер',
   },
 };
 

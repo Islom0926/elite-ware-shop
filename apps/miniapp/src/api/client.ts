@@ -1,5 +1,7 @@
 import type {
   AuthResponse,
+  Banner,
+  BannerInput,
   Cart,
   CatalogQuery,
   Category,
@@ -71,6 +73,10 @@ export class ApiClient {
 
   getCategories(): Promise<Category[]> {
     return this.request<Category[]>('/categories');
+  }
+
+  getBanners(): Promise<Banner[]> {
+    return this.request<Banner[]>('/banners');
   }
 
   getProducts(query: Partial<CatalogQuery> = {}): Promise<ProductPage> {
@@ -165,6 +171,17 @@ export class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ role }),
     });
+  }
+
+  adminCreateBanner(input: BannerInput): Promise<Banner> {
+    return this.request<Banner>('/admin/banners', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  adminDeleteBanner(id: string): Promise<void> {
+    return this.request<void>(`/admin/banners/${id}`, { method: 'DELETE' });
   }
 }
 

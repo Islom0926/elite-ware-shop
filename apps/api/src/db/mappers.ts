@@ -1,4 +1,5 @@
 import type {
+  Banner,
   Category,
   Order,
   OrderItem,
@@ -7,7 +8,7 @@ import type {
   ShopConfig,
   User,
 } from '@tma-shop/shared';
-import type { categories, orderItems, orders, products, shops, users } from './schema.js';
+import type { banners, categories, orderItems, orders, products, shops, users } from './schema.js';
 
 type ProductRow = typeof products.$inferSelect;
 type CategoryRow = typeof categories.$inferSelect;
@@ -15,6 +16,7 @@ type ShopRow = typeof shops.$inferSelect;
 type UserRow = typeof users.$inferSelect;
 type OrderRow = typeof orders.$inferSelect;
 type OrderItemRow = typeof orderItems.$inferSelect;
+type BannerRow = typeof banners.$inferSelect;
 
 export function toProductDTO(row: ProductRow): Product {
   return {
@@ -40,6 +42,17 @@ export function toCategoryDTO(row: CategoryRow): Category {
     slug: row.slug,
     title: row.title,
     sortOrder: row.sortOrder,
+  };
+}
+
+export function toBannerDTO(row: BannerRow): Banner {
+  return {
+    id: row.id,
+    shopId: row.shopId,
+    imageUrl: row.imageUrl,
+    productId: row.productId,
+    sortOrder: row.sortOrder,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 

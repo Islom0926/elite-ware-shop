@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Badge, Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui';
-import type { OrderStatus, ProductInput, ShopConfig } from '@tma-shop/shared';
+import type { Banner, OrderStatus, Product, ProductInput, ShopConfig } from '@tma-shop/shared';
 import { api, ApiClientError } from '../api/client.js';
 import { useAsync } from '../hooks/useAsync.js';
 import { useSession } from '../providers/SessionProvider.js';
 import { formatPrice } from '../lib/format.js';
+import { fileToCompressedDataUrl } from '../lib/image.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
 import { useLang } from '../i18n/LanguageProvider.js';
@@ -37,6 +38,7 @@ export function AdminPage(): React.JSX.Element {
   return (
     <List>
       <ShopSettingsForm shop={shop.data} onSaved={reload} />
+      <BannersManager />
       <NewProductForm currency={shop.data?.currency ?? 'UZS'} onCreated={reload} />
 
       <Section header={t('allOrders')}>
@@ -188,6 +190,115 @@ function AdminsManager({ selfTelegramId }: { selfTelegramId: number | null }): R
   );
 }
 
+function BannersManager(): React.JSX.Element {
+  const { t } = useLang();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const banners = useAsync(() => api.getBanners(), [reloadKey]);
+  const products = useAsync(() => api.getProducts({ limit: 100 }), []);
+  const [linkProductId, setLinkProductId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const addBanner = async (file: File): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const imageUrl = await fileToCompressedDataUrl(file, 1600, 0.75);
+      await api.adminCreateBanner({
+        imageUrl,
+        productId: linkProductId || null,
+        sortOrder: banners.data?.length ?? 0,
+      });
+      setLinkProductId('');
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('bannerAddFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeBanner = async (id: string): Promise<void> => {
+    setBusy(true);
+    try {
+      await api.adminDeleteBanner(id);
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('bannerAddFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section header={t('bannersHeader')}>
+      {banners.loading && <Loader />}
+      {banners.error && <ErrorView message={banners.error} />}
+      {message && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{message}</Cell>}
+      {banners.data?.map((banner: Banner) => (
+        <Cell
+          key={banner.id}
+          before={
+            <img
+              src={banner.imageUrl}
+              alt=""
+              style={{ width: 64, height: 28, objectFit: 'cover', borderRadius: 6 }}
+            />
+          }
+          after={
+            <Button
+              size="s"
+              mode="plain"
+              loading={busy}
+              onClick={() => void removeBanner(banner.id)}
+            >
+              {t('remove')}
+            </Button>
+          }
+        >
+          {banner.productId
+            ? (products.data?.items.find((p: Product) => p.id === banner.productId)?.title ??
+              t('bannerLinkedProduct'))
+            : t('bannerNoLink')}
+        </Cell>
+      ))}
+
+      <Input
+        header={t('bannerLinkProductLabel')}
+        placeholder={t('bannerLinkProductPlaceholder')}
+        value={linkProductId}
+        onChange={(e) => setLinkProductId(e.target.value)}
+        list="banner-products"
+      />
+      <datalist id="banner-products">
+        {products.data?.items.map((p: Product) => (
+          <option key={p.id} value={p.id}>
+            {p.title}
+          </option>
+        ))}
+      </datalist>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void addBanner(file);
+        }}
+      />
+      <div style={{ padding: 16 }}>
+        <Button stretched loading={busy} onClick={() => fileInputRef.current?.click()}>
+          {t('addBanner')}
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
 function ShopSettingsForm({
   shop,
   onSaved,
@@ -266,12 +377,18 @@ function NewProductForm({
   onCreated: () => void;
 }): React.JSX.Element {
   const { t } = useLang();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const onPickImage = async (file: File): Promise<void> => {
+    setImageUrl(await fileToCompressedDataUrl(file, 1200, 0.75));
+  };
 
   const submit = async (): Promise<void> => {
     setBusy(true);
@@ -283,7 +400,7 @@ function NewProductForm({
       description: description.trim(),
       price: Number(price) || 0,
       currency,
-      imageUrl: null,
+      imageUrl,
       stock: null,
       isActive: true,
     };
@@ -294,6 +411,7 @@ function NewProductForm({
       setSlug('');
       setPrice('');
       setDescription('');
+      setImageUrl(null);
       onCreated();
     } catch (err) {
       setMessage(err instanceof ApiClientError ? err.message : t('failedToCreateProduct'));
@@ -317,6 +435,28 @@ function NewProductForm({
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void onPickImage(file);
+        }}
+      />
+      <div style={{ padding: '0 16px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt=""
+            style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }}
+          />
+        )}
+        <Button size="s" mode="bezeled" onClick={() => fileInputRef.current?.click()}>
+          {t('chooseFile')}
+        </Button>
+      </div>
       <div style={{ padding: 16 }}>
         <Button stretched loading={busy} disabled={!title || !slug} onClick={() => void submit()}>
           {t('createProduct')}

@@ -20,7 +20,7 @@ export const product = z.object({
   /** Price in the shop currency's minor units (or whole Stars for XTR). */
   price: moneyAmount,
   currency: currencyCode,
-  imageUrl: z.url().nullable(),
+  imageUrl: z.url().max(2_000_000).nullable(),
   /** `null` means the product is not stock-tracked (always available). */
   stock: z.number().int().nonnegative().nullable(),
   isActive: z.boolean(),
@@ -41,3 +41,20 @@ export const productInput = product.omit({
   createdAt: true,
 });
 export type ProductInput = z.infer<typeof productInput>;
+
+export const banner = z.object({
+  id,
+  shopId: id,
+  imageUrl: z.url().max(2_000_000),
+  productId: id.nullable(),
+  sortOrder: z.number().int(),
+  createdAt: isoDateTime,
+});
+export type Banner = z.infer<typeof banner>;
+
+export const bannerInput = banner.pick({
+  imageUrl: true,
+  productId: true,
+  sortOrder: true,
+});
+export type BannerInput = z.infer<typeof bannerInput>;

@@ -72,6 +72,19 @@ export const products = pgTable(
   (table) => [unique('products_shop_slug_unique').on(table.shopId, table.slug)],
 );
 
+export const banners = pgTable('banners', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  shopId: uuid('shop_id')
+    .notNull()
+    .references(() => shops.id, { onDelete: 'cascade' }),
+  /** Banner artwork, stored as a data URL (base64 image). */
+  imageUrl: text('image_url').notNull(),
+  /** Optional product the banner links to when tapped. */
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const users = pgTable('users', {
   telegramId: bigint('telegram_id', { mode: 'number' }).primaryKey(),
   firstName: text('first_name').notNull(),
@@ -163,6 +176,11 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
 export const productsRelations = relations(products, ({ one }) => ({
   shop: one(shops, { fields: [products.shopId], references: [shops.id] }),
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
+}));
+
+export const bannersRelations = relations(banners, ({ one }) => ({
+  shop: one(shops, { fields: [banners.shopId], references: [shops.id] }),
+  product: one(products, { fields: [banners.productId], references: [products.id] }),
 }));
 
 export const cartsRelations = relations(carts, ({ one, many }) => ({

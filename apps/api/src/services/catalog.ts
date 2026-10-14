@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm';
-import type { CatalogQuery, Category, Product } from '@tma-shop/shared';
+import type { Banner, CatalogQuery, Category, Product } from '@tma-shop/shared';
 import type { Database } from '../db/client.js';
-import { categories, products } from '../db/schema.js';
-import { toCategoryDTO, toProductDTO } from '../db/mappers.js';
+import { banners, categories, products } from '../db/schema.js';
+import { toBannerDTO, toCategoryDTO, toProductDTO } from '../db/mappers.js';
 
 export async function listCategories(db: Database, shopId: string): Promise<Category[]> {
   const rows = await db
@@ -11,6 +11,15 @@ export async function listCategories(db: Database, shopId: string): Promise<Cate
     .where(eq(categories.shopId, shopId))
     .orderBy(asc(categories.sortOrder), asc(categories.title));
   return rows.map(toCategoryDTO);
+}
+
+export async function listBanners(db: Database, shopId: string): Promise<Banner[]> {
+  const rows = await db
+    .select()
+    .from(banners)
+    .where(eq(banners.shopId, shopId))
+    .orderBy(asc(banners.sortOrder), asc(banners.createdAt));
+  return rows.map(toBannerDTO);
 }
 
 export interface ProductPage {

@@ -8,6 +8,7 @@ import { useSession } from '../providers/SessionProvider.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
 import { ProductCard } from '../components/ProductCard.js';
+import { BannerCarousel } from '../components/BannerCarousel.js';
 import { useLang } from '../i18n/LanguageProvider.js';
 import { LANGS } from '../i18n/translations.js';
 
@@ -20,6 +21,7 @@ export function CatalogPage(): React.JSX.Element {
   const [search, setSearch] = useState('');
 
   const categories = useAsync(() => api.getCategories(), []);
+  const banners = useAsync(() => api.getBanners(), []);
   const products = useAsync(
     () => api.getProducts({ categoryId, search: search.trim() || undefined }),
     [categoryId, search],
@@ -42,6 +44,8 @@ export function CatalogPage(): React.JSX.Element {
           style={{ width: 88, height: 88, borderRadius: 16 }}
         />
       </div>
+
+      {banners.data && banners.data.length > 0 && <BannerCarousel banners={banners.data} />}
 
       <Section>
         <Cell
@@ -98,15 +102,25 @@ export function CatalogPage(): React.JSX.Element {
 
       {products.loading && <Loader />}
       {products.error && <ErrorView message={products.error} />}
-      {products.data && (
-        <Section>
-          {products.data.items.length === 0 ? (
+      {products.data &&
+        (products.data.items.length === 0 ? (
+          <Section>
             <Cell>{t('noProductsFound')}</Cell>
-          ) : (
-            products.data.items.map((product) => <ProductCard key={product.id} product={product} />)
-          )}
-        </Section>
-      )}
+          </Section>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 10,
+              padding: '8px 16px 24px',
+            }}
+          >
+            {products.data.items.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ))}
     </List>
   );
 }

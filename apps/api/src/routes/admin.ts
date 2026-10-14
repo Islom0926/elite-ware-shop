@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import {
+  bannerInput,
   orderStatus,
   productInput,
   setUserRoleRequest,
@@ -10,7 +11,14 @@ import {
 } from '@tma-shop/shared';
 import type { AppBindings } from '../context.js';
 import { requireAdmin, requireAuth } from '../auth/middleware.js';
-import { createCategory, createProduct, deleteProduct, updateProduct } from '../services/admin.js';
+import {
+  createBanner,
+  createCategory,
+  createProduct,
+  deleteBanner,
+  deleteProduct,
+  updateProduct,
+} from '../services/admin.js';
 import { confirmOrderPaidManually, listAllOrders, setOrderStatus } from '../services/orders.js';
 import { updateShopSettings } from '../services/shop.js';
 import { listUsers, setUserRole } from '../services/users.js';
@@ -56,6 +64,15 @@ export function adminRoutes(): Hono<AppBindings> {
   app.post('/categories', zValidator('json', categoryInput), async (c) =>
     c.json(await createCategory(c.get('db'), c.get('shopId'), c.req.valid('json')), 201),
   );
+
+  // Banners
+  app.post('/banners', zValidator('json', bannerInput), async (c) =>
+    c.json(await createBanner(c.get('db'), c.get('shopId'), c.req.valid('json')), 201),
+  );
+  app.delete('/banners/:id', zValidator('param', idParam), async (c) => {
+    await deleteBanner(c.get('db'), c.get('shopId'), c.req.valid('param').id);
+    return c.body(null, 204);
+  });
 
   // Shop settings (manual payment card details)
   app.patch('/shop', zValidator('json', updateShopSettingsRequest), async (c) =>

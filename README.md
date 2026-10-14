@@ -17,7 +17,7 @@ The entire store is driven by a single shop configuration record (bootstrapped a
 
 ### Features
 
-- 🛍️ **Storefront** — categories, product search, product details, cart and checkout
+- 🛍️ **Storefront** — categories, live search, an image-card product grid, a promo banner carousel, product details, cart and checkout
 - 🔐 **Secure auth** — server-side HMAC-SHA256 validation of Telegram `initData` → short-lived JWT session
 - 💳 **Manual card payment** — admin sets a card number/instructions; customer uploads a payment receipt; admin reviews and confirms from the order list
 - 📦 **Orders** — order history for customers, an admin view for managing products, categories and order status
@@ -171,7 +171,7 @@ elite-ware-shop/
 
 ### Возможности
 
-- 🛍️ **Витрина** — категории, поиск, карточка товара, корзина и оформление
+- 🛍️ **Витрина** — категории, живой поиск, каталог карточек с изображениями, карусель баннеров, карточка товара, корзина и оформление
 - 🔐 **Безопасная авторизация** — серверная проверка `initData` по HMAC-SHA256 → короткоживущий JWT
 - 💳 **Ручная оплата картой** — админ задаёт номер карты и инструкции; покупатель загружает чек об оплате; админ проверяет и подтверждает из списка заказов
 - 📦 **Заказы** — история заказов для покупателя, админ-панель для товаров, категорий и статусов
