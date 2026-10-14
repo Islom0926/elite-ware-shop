@@ -27,6 +27,18 @@ export function CatalogPage(): React.JSX.Element {
 
   return (
     <List>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '24px 16px 8px',
+          gap: 8,
+        }}
+      >
+        <img src="/logo.png" alt="Elite Ware Shop" style={{ width: 88, height: 88, borderRadius: 16 }} />
+      </div>
+
       <Section>
         <Cell
           onClick={() => navigate('/cart')}

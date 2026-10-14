@@ -193,6 +193,48 @@ export async function markOrderPaid(
   });
 }
 
+/**
+ * Records a customer-submitted payment receipt and moves the order to
+ * `awaiting_payment`, pending admin review. A no-op on already-settled orders.
+ */
+export async function submitOrderReceipt(
+  db: Database,
+  shopId: string,
+  orderId: string,
+  userId: number,
+  imageData: string,
+): Promise<Order> {
+  const order = await db.query.orders.findFirst({
+    where: and(eq(orders.shopId, shopId), eq(orders.id, orderId), eq(orders.userId, userId)),
+  });
+  if (!order) throw ApiError.notFound('Order not found');
+  if (order.status === 'paid' || order.status === 'fulfilled' || order.status === 'cancelled') {
+    throw ApiError.conflict('order_settled', 'This order can no longer accept a receipt');
+  }
+
+  const [updated] = await db
+    .update(orders)
+    .set({ receiptImage: imageData, status: 'awaiting_payment', updatedAt: new Date() })
+    .where(eq(orders.id, orderId))
+    .returning();
+  if (!updated) throw new Error('Failed to update order');
+  const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  return toOrderDTO(updated, items);
+}
+
+/** Admin confirms a manual payment: marks the order paid and decrements stock. */
+export async function confirmOrderPaidManually(
+  db: Database,
+  shopId: string,
+  orderId: string,
+): Promise<Order> {
+  const order = await db.query.orders.findFirst({
+    where: and(eq(orders.shopId, shopId), eq(orders.id, orderId)),
+  });
+  if (!order) throw ApiError.notFound('Order not found');
+  return markOrderPaid(db, orderId, 'manual');
+}
+
 async function attachItems(db: Database, rows: (typeof orders.$inferSelect)[]): Promise<Order[]> {
   if (rows.length === 0) return [];
   const result: Order[] = [];

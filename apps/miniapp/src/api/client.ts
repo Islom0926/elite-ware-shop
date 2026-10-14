@@ -9,6 +9,7 @@ import type {
   Product,
   ProductInput,
   ShopConfig,
+  UpdateShopSettingsRequest,
 } from '@tma-shop/shared';
 
 export interface ProductPage {
@@ -125,9 +126,23 @@ export class ApiClient {
     return this.request<InvoiceResponse>(`/orders/${orderId}/invoice`, { method: 'POST' });
   }
 
+  submitReceipt(orderId: string, imageData: string): Promise<Order> {
+    return this.request<Order>(`/orders/${orderId}/receipt`, {
+      method: 'POST',
+      body: JSON.stringify({ imageData }),
+    });
+  }
+
   // --- admin ---
   adminGetOrders(): Promise<Order[]> {
     return this.request<Order[]>('/admin/orders');
+  }
+
+  adminUpdateShop(input: UpdateShopSettingsRequest): Promise<ShopConfig> {
+    return this.request<ShopConfig>('/admin/shop', {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
   }
 
   adminSetOrderStatus(orderId: string, status: Order['status']): Promise<Order> {

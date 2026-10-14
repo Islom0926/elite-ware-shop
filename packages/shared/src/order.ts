@@ -4,8 +4,8 @@ import { telegramUserId } from './user.js';
 
 export const orderStatus = z.enum([
   'pending', // created, not yet paid
-  'awaiting_payment', // invoice issued, waiting for Stars payment
-  'paid', // payment confirmed
+  'awaiting_payment', // receipt submitted, waiting for admin confirmation
+  'paid', // payment confirmed by admin
   'cancelled',
   'fulfilled',
 ]);
@@ -29,9 +29,17 @@ export const order = z.object({
   items: z.array(orderItem).min(1),
   total: moneyAmount,
   currency: currencyCode,
-  /** Telegram payment charge id once paid. */
+  /** Telegram payment charge id once paid (unused for manual payments). */
   paymentChargeId: z.string().nullable(),
+  /** Customer-submitted payment proof, as a data URL. */
+  receiptImage: z.string().nullable(),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });
 export type Order = z.infer<typeof order>;
+
+export const submitReceiptRequest = z.object({
+  /** Data URL (e.g. `data:image/jpeg;base64,...`) of the payment screenshot. */
+  imageData: z.string().min(1).max(2_000_000),
+});
+export type SubmitReceiptRequest = z.infer<typeof submitReceiptRequest>;

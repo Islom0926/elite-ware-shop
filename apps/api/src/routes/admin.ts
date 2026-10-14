@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { orderStatus, productInput, slug } from '@tma-shop/shared';
+import { orderStatus, productInput, slug, updateShopSettingsRequest } from '@tma-shop/shared';
 import type { AppBindings } from '../context.js';
 import { requireAdmin, requireAuth } from '../auth/middleware.js';
 import { createCategory, createProduct, deleteProduct, updateProduct } from '../services/admin.js';
-import { listAllOrders, setOrderStatus } from '../services/orders.js';
+import { confirmOrderPaidManually, listAllOrders, setOrderStatus } from '../services/orders.js';
+import { updateShopSettings } from '../services/shop.js';
 
 const idParam = z.object({ id: z.uuid() });
 const categoryInput = z.object({
@@ -47,21 +48,26 @@ export function adminRoutes(): Hono<AppBindings> {
     c.json(await createCategory(c.get('db'), c.get('shopId'), c.req.valid('json')), 201),
   );
 
+  // Shop settings (manual payment card details)
+  app.patch('/shop', zValidator('json', updateShopSettingsRequest), async (c) =>
+    c.json(await updateShopSettings(c.get('db'), c.get('shopId'), c.req.valid('json'))),
+  );
+
   // Orders
   app.get('/orders', async (c) => c.json(await listAllOrders(c.get('db'), c.get('shopId'))));
   app.patch(
     '/orders/:id',
     zValidator('param', idParam),
     zValidator('json', statusInput),
-    async (c) =>
-      c.json(
-        await setOrderStatus(
-          c.get('db'),
-          c.get('shopId'),
-          c.req.valid('param').id,
-          c.req.valid('json').status,
-        ),
-      ),
+    async (c) => {
+      const { status } = c.req.valid('json');
+      const { id } = c.req.valid('param');
+      const order =
+        status === 'paid'
+          ? await confirmOrderPaidManually(c.get('db'), c.get('shopId'), id)
+          : await setOrderStatus(c.get('db'), c.get('shopId'), id, status);
+      return c.json(order);
+    },
   );
 
   return app;

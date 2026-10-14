@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Badge, Cell, List, Placeholder, Section } from '@telegram-apps/telegram-ui';
 import type { OrderStatus } from '@tma-shop/shared';
 import { api } from '../api/client.js';
@@ -19,6 +20,7 @@ const STATUS_LABEL_KEY: Record<OrderStatus, keyof Dictionary> = {
 export function OrdersPage(): React.JSX.Element {
   const { data: orders, loading, error } = useAsync(() => api.getOrders(), []);
   const { t } = useLang();
+  const navigate = useNavigate();
 
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} />;
@@ -41,6 +43,7 @@ export function OrdersPage(): React.JSX.Element {
             description={<Badge type="dot" />}
             hint={t(STATUS_LABEL_KEY[order.status])}
             multiline
+            onClick={order.status === 'pending' ? () => navigate(`/pay/${order.id}`) : undefined}
           >
             {t('orderNumber', { id: order.id.slice(0, 8) })}
           </Cell>

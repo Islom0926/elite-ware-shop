@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { miniApp, retrieveLaunchParams, useSignal } from '@telegram-apps/sdk-react';
 import { AppRoot, Placeholder } from '@telegram-apps/telegram-ui';
@@ -9,6 +10,7 @@ import { Loader } from './components/Loader.js';
 import { CatalogPage } from './pages/CatalogPage.js';
 import { ProductPage } from './pages/ProductPage.js';
 import { CartPage } from './pages/CartPage.js';
+import { PaymentPage } from './pages/PaymentPage.js';
 import { OrdersPage } from './pages/OrdersPage.js';
 import { AdminPage } from './pages/AdminPage.js';
 
@@ -39,6 +41,7 @@ function Shell(): React.JSX.Element {
       <Route path="/" element={<CatalogPage />} />
       <Route path="/product/:id" element={<ProductPage />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/pay/:id" element={<PaymentPage />} />
       <Route path="/orders" element={<OrdersPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -48,6 +51,10 @@ function Shell(): React.JSX.Element {
 
 export function App(): React.JSX.Element {
   const isDark = useSignal(miniApp.isDark);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   return (
     <AppRoot appearance={isDark ? 'dark' : 'light'} platform={platform()}>

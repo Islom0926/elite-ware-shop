@@ -2,9 +2,10 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import type { CreateOrderResponse, InvoiceResponse } from '@tma-shop/shared';
+import { submitReceiptRequest } from '@tma-shop/shared';
 import type { AppBindings } from '../context.js';
 import { requireAuth } from '../auth/middleware.js';
-import { createOrderFromCart, getOrder, listOrders } from '../services/orders.js';
+import { createOrderFromCart, getOrder, listOrders, submitOrderReceipt } from '../services/orders.js';
 import { createStarsInvoice } from '../services/payments.js';
 import { ApiError } from '../lib/errors.js';
 
@@ -46,6 +47,23 @@ export function orderRoutes(): Hono<AppBindings> {
     const response: InvoiceResponse = { invoiceLink };
     return c.json(response);
   });
+
+  app.post(
+    '/:id/receipt',
+    zValidator('param', idParam),
+    zValidator('json', submitReceiptRequest),
+    async (c) => {
+      const { sub } = c.get('claims');
+      const order = await submitOrderReceipt(
+        c.get('db'),
+        c.get('shopId'),
+        c.req.valid('param').id,
+        sub,
+        c.req.valid('json').imageData,
+      );
+      return c.json(order);
+    },
+  );
 
   return app;
 }

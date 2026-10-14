@@ -15,6 +15,12 @@ export const shop = z.object({
   botUsername: z.string().max(64).nullable(),
   /** Whether checkout is paid with Telegram Stars. */
   starsEnabled: z.boolean(),
+  /** Bank card number customers transfer manual payments to. */
+  cardNumber: z.string().max(64).nullable(),
+  /** Name on the bank card, shown to customers alongside the number. */
+  cardHolder: z.string().max(128).nullable(),
+  /** Free-form instructions shown at checkout. */
+  paymentInstructions: z.string().max(1024).nullable(),
   createdAt: isoDateTime,
 });
 export type Shop = z.infer<typeof shop>;
@@ -26,5 +32,15 @@ export const shopConfig = shop.pick({
   currency: true,
   botUsername: true,
   starsEnabled: true,
+  cardNumber: true,
+  cardHolder: true,
+  paymentInstructions: true,
 });
 export type ShopConfig = z.infer<typeof shopConfig>;
+
+export const updateShopSettingsRequest = z.object({
+  cardNumber: z.string().trim().max(64).nullable(),
+  cardHolder: z.string().trim().max(128).nullable(),
+  paymentInstructions: z.string().trim().max(1024).nullable(),
+});
+export type UpdateShopSettingsRequest = z.infer<typeof updateShopSettingsRequest>;

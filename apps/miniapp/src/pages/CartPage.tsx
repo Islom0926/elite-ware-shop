@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { openInvoice } from '@telegram-apps/sdk-react';
 import { Button, Cell, List, Placeholder, Section } from '@telegram-apps/telegram-ui';
 import { api, ApiClientError } from '../api/client.js';
 import { useCart } from '../providers/CartProvider.js';
@@ -21,21 +20,13 @@ export function CartPage(): React.JSX.Element {
     setError(null);
     try {
       const { orderId } = await api.createOrder();
-      const { invoiceLink } = await api.createInvoice(orderId);
-      if (openInvoice.isAvailable()) {
-        const status = await openInvoice(invoiceLink, 'url');
-        navigate(status === 'paid' ? '/orders' : `/orders`);
-      } else {
-        // Outside Telegram (browser dev) we cannot open the native invoice.
-        navigate('/orders');
-      }
+      navigate(`/pay/${orderId}`);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : t('checkoutFailed'));
+      setError(err instanceof ApiClientError ? err.message : t('orderCreateFailed'));
     } finally {
       setBusy(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+  }, [navigate, t]);
 
   const hasItems = (cart?.lines.length ?? 0) > 0;
 
@@ -63,7 +54,7 @@ export function CartPage(): React.JSX.Element {
           <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{error}</Cell>
         </Section>
       )}
-      <Section header="Cart">
+      <Section header={t('cart')}>
         {cart?.lines.map((line) => (
           <Cell
             key={line.product.id}

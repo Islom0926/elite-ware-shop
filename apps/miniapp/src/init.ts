@@ -31,7 +31,9 @@ export function init(debug: boolean): void {
 
   if (themeParams.mountSync.isAvailable()) {
     themeParams.mountSync();
-    themeParams.bindCssVars();
+    // Deliberately not calling themeParams.bindCssVars(): it would set
+    // --tg-theme-* as inline styles on <html>, overriding our own brand
+    // theme (src/theme.css) which Telegram UI reads via the same variables.
   }
 
   if (viewport.mount.isAvailable()) {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui';
-import type { OrderStatus, ProductInput } from '@tma-shop/shared';
+import type { OrderStatus, ProductInput, ShopConfig } from '@tma-shop/shared';
 import { api, ApiClientError } from '../api/client.js';
 import { useAsync } from '../hooks/useAsync.js';
 import { useSession } from '../providers/SessionProvider.js';
@@ -8,6 +8,15 @@ import { formatPrice } from '../lib/format.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
 import { useLang } from '../i18n/LanguageProvider.js';
+import type { Dictionary } from '../i18n/translations.js';
+
+const STATUS_LABEL_KEY: Record<OrderStatus, keyof Dictionary> = {
+  pending: 'statusPending',
+  awaiting_payment: 'statusAwaitingPayment',
+  paid: 'statusPaid',
+  cancelled: 'statusCancelled',
+  fulfilled: 'statusFulfilled',
+};
 
 export function AdminPage(): React.JSX.Element {
   const { isAdmin } = useSession();
@@ -15,7 +24,7 @@ export function AdminPage(): React.JSX.Element {
   const [reloadKey, setReloadKey] = useState(0);
   const reload = (): void => setReloadKey((k) => k + 1);
 
-  const shop = useAsync(() => api.getShop(), []);
+  const shop = useAsync(() => api.getShop(), [reloadKey]);
   const orders = useAsync(() => api.adminGetOrders(), [reloadKey]);
 
   if (!isAdmin) return <ErrorView message={t('adminsOnly')} />;
@@ -27,7 +36,8 @@ export function AdminPage(): React.JSX.Element {
 
   return (
     <List>
-      <NewProductForm currency={shop.data?.currency ?? 'XTR'} onCreated={reload} />
+      <ShopSettingsForm shop={shop.data} onSaved={reload} />
+      <NewProductForm currency={shop.data?.currency ?? 'UZS'} onCreated={reload} />
 
       <Section header={t('allOrders')}>
         {orders.loading && <Loader />}
@@ -36,9 +46,31 @@ export function AdminPage(): React.JSX.Element {
         {orders.data?.map((order) => (
           <Cell
             key={order.id}
-            subtitle={`${order.status} · ${formatPrice(order.total, order.currency)}`}
+            subtitle={`${t(STATUS_LABEL_KEY[order.status])} · ${formatPrice(order.total, order.currency)}`}
+            description={
+              order.receiptImage ? (
+                <div style={{ marginTop: 6 }}>
+                  <a href={order.receiptImage} target="_blank" rel="noreferrer">
+                    <img
+                      src={order.receiptImage}
+                      alt={t('receiptLabel')}
+                      style={{ maxWidth: 120, borderRadius: 8, display: 'block' }}
+                    />
+                  </a>
+                </div>
+              ) : undefined
+            }
             after={
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {order.status === 'awaiting_payment' && (
+                  <Button
+                    size="s"
+                    mode="filled"
+                    onClick={() => void setStatus(order.id, 'paid')}
+                  >
+                    {t('confirmPayment')}
+                  </Button>
+                )}
                 {order.status === 'paid' && (
                   <Button
                     size="s"
@@ -66,6 +98,76 @@ export function AdminPage(): React.JSX.Element {
         ))}
       </Section>
     </List>
+  );
+}
+
+function ShopSettingsForm({
+  shop,
+  onSaved,
+}: {
+  shop: ShopConfig | null;
+  onSaved: () => void;
+}): React.JSX.Element {
+  const { t } = useLang();
+  const [cardNumber, setCardNumber] = useState(shop?.cardNumber ?? '');
+  const [cardHolder, setCardHolder] = useState(shop?.cardHolder ?? '');
+  const [paymentInstructions, setPaymentInstructions] = useState(shop?.paymentInstructions ?? '');
+  const [initialized, setInitialized] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  if (shop && !initialized) {
+    setCardNumber(shop.cardNumber ?? '');
+    setCardHolder(shop.cardHolder ?? '');
+    setPaymentInstructions(shop.paymentInstructions ?? '');
+    setInitialized(true);
+  }
+
+  const submit = async (): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api.adminUpdateShop({
+        cardNumber: cardNumber.trim() || null,
+        cardHolder: cardHolder.trim() || null,
+        paymentInstructions: paymentInstructions.trim() || null,
+      });
+      setMessage(t('settingsSaved'));
+      onSaved();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('saveSettingsFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section header={t('shopSettingsHeader')}>
+      <Input
+        header={t('cardNumberLabel')}
+        placeholder={t('cardNumberPlaceholder')}
+        value={cardNumber}
+        onChange={(e) => setCardNumber(e.target.value)}
+      />
+      <Input
+        header={t('cardHolderLabel')}
+        placeholder={t('cardHolderPlaceholder')}
+        value={cardHolder}
+        onChange={(e) => setCardHolder(e.target.value)}
+      />
+      <Textarea
+        header={t('paymentInstructionsLabel')}
+        placeholder={t('paymentInstructionsPlaceholder')}
+        value={paymentInstructions}
+        onChange={(e) => setPaymentInstructions(e.target.value)}
+      />
+      <div style={{ padding: 16 }}>
+        <Button stretched loading={busy} onClick={() => void submit()}>
+          {t('saveSettings')}
+        </Button>
+        {message && <Cell>{message}</Cell>}
+      </div>
+    </Section>
   );
 }
 

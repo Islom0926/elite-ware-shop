@@ -50,6 +50,9 @@ export function toShopConfigDTO(row: ShopRow): ShopConfig {
     currency: row.currency,
     botUsername: row.botUsername,
     starsEnabled: row.starsEnabled,
+    cardNumber: row.cardNumber,
+    cardHolder: row.cardHolder,
+    paymentInstructions: row.paymentInstructions,
   };
 }
 
@@ -86,6 +89,7 @@ export function toOrderDTO(row: OrderRow, items: OrderItemRow[]): Order {
     total: row.total,
     currency: row.currency,
     paymentChargeId: row.paymentChargeId,
+    receiptImage: row.receiptImage,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

@@ -1,0 +1,41 @@
+/*
+  Elite Ware Shop brand theme. Overrides the `--tg-theme-*` variables that
+  Telegram UI reads, so the storefront stays a consistent minimalist
+  white/navy look regardless of the viewer's own Telegram theme, with a
+  separate dark palette for night mode.
+*/
+:root {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #11182a;
+  --tg-theme-hint-color: #6b7280;
+  --tg-theme-link-color: #1d3461;
+  --tg-theme-button-color: #1d3461;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f5f6f8;
+  --tg-theme-header-bg-color: #ffffff;
+  --tg-theme-accent-text-color: #1d3461;
+  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-section-header-text-color: #6b7280;
+  --tg-theme-subtitle-text-color: #6b7280;
+  --tg-theme-destructive-text-color: #e5484d;
+}
+
+[data-theme='dark'] {
+  --tg-theme-bg-color: #0f1115;
+  --tg-theme-text-color: #f1f3f6;
+  --tg-theme-hint-color: #9aa3b2;
+  --tg-theme-link-color: #7fa6e0;
+  --tg-theme-button-color: #2d4a7c;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #171a21;
+  --tg-theme-header-bg-color: #0f1115;
+  --tg-theme-accent-text-color: #7fa6e0;
+  --tg-theme-section-bg-color: #171a21;
+  --tg-theme-section-header-text-color: #9aa3b2;
+  --tg-theme-subtitle-text-color: #9aa3b2;
+  --tg-theme-destructive-text-color: #ff6b6b;
+}
+
+body {
+  margin: 0;
+}

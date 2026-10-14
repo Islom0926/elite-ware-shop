@@ -57,6 +57,27 @@ export interface Dictionary {
   statusPaid: string;
   statusCancelled: string;
   statusFulfilled: string;
+  payHeader: string;
+  amountToPay: string;
+  cardNumberLabel: string;
+  cardHolderLabel: string;
+  paymentInstructionsLabel: string;
+  noCardConfigured: string;
+  uploadReceiptLabel: string;
+  chooseFile: string;
+  submitReceipt: string;
+  receiptSubmitted: string;
+  receiptSubmitFailed: string;
+  orderCreateFailed: string;
+  shopSettingsHeader: string;
+  cardNumberPlaceholder: string;
+  cardHolderPlaceholder: string;
+  paymentInstructionsPlaceholder: string;
+  saveSettings: string;
+  settingsSaved: string;
+  saveSettingsFailed: string;
+  confirmPayment: string;
+  receiptLabel: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -108,10 +129,31 @@ export const dictionaries: Record<Lang, Dictionary> = {
     launchFromTelegram: 'Ilovani Telegram orqali oching',
     authenticationFailed: 'Avtorizatsiya amalga oshmadi',
     statusPending: 'Kutilmoqda',
-    statusAwaitingPayment: "To'lov kutilmoqda",
+    statusAwaitingPayment: 'Tasdiqlanishi kutilmoqda',
     statusPaid: "To'langan",
     statusCancelled: 'Bekor qilingan',
     statusFulfilled: 'Bajarilgan',
+    payHeader: "To'lov",
+    amountToPay: "To'lov summasi",
+    cardNumberLabel: 'Karta raqami',
+    cardHolderLabel: 'Karta egasi',
+    paymentInstructionsLabel: "To'lov bo'yicha ko'rsatma",
+    noCardConfigured: "To'lov usuli hali sozlanmagan. Admin bilan bog'laning.",
+    uploadReceiptLabel: "To'lov chekini (skrinshot) yuklang",
+    chooseFile: 'Fayl tanlash',
+    submitReceipt: 'Yuborish',
+    receiptSubmitted: 'Chek yuborildi. Admin tasdiqlashini kuting.',
+    receiptSubmitFailed: 'Chekni yuborib bo‘lmadi',
+    orderCreateFailed: 'Buyurtma yaratilmadi',
+    shopSettingsHeader: "To'lov sozlamalari",
+    cardNumberPlaceholder: 'Masalan: 8600 1234 5678 9012',
+    cardHolderPlaceholder: 'Masalan: ISLOM ISLOMOV',
+    paymentInstructionsPlaceholder: "Mijozlarga ko'rinadigan qo'shimcha matn",
+    saveSettings: 'Saqlash',
+    settingsSaved: 'Saqlandi',
+    saveSettingsFailed: 'Saqlashda xatolik',
+    confirmPayment: "To'lovni tasdiqlash",
+    receiptLabel: 'Chek',
   },
   ru: {
     cart: '🛒 Корзина',
@@ -161,10 +203,31 @@ export const dictionaries: Record<Lang, Dictionary> = {
     launchFromTelegram: 'Откройте приложение из Telegram',
     authenticationFailed: 'Не удалось авторизоваться',
     statusPending: 'В ожидании',
-    statusAwaitingPayment: 'Ожидает оплаты',
+    statusAwaitingPayment: 'Ожидает подтверждения',
     statusPaid: 'Оплачен',
     statusCancelled: 'Отменён',
     statusFulfilled: 'Выполнен',
+    payHeader: 'Оплата',
+    amountToPay: 'Сумма к оплате',
+    cardNumberLabel: 'Номер карты',
+    cardHolderLabel: 'Владелец карты',
+    paymentInstructionsLabel: 'Инструкция по оплате',
+    noCardConfigured: 'Способ оплаты ещё не настроен. Свяжитесь с администратором.',
+    uploadReceiptLabel: 'Загрузите чек (скриншот) об оплате',
+    chooseFile: 'Выбрать файл',
+    submitReceipt: 'Отправить',
+    receiptSubmitted: 'Чек отправлен. Ожидайте подтверждения администратора.',
+    receiptSubmitFailed: 'Не удалось отправить чек',
+    orderCreateFailed: 'Не удалось создать заказ',
+    shopSettingsHeader: 'Настройки оплаты',
+    cardNumberPlaceholder: 'Например: 8600 1234 5678 9012',
+    cardHolderPlaceholder: 'Например: ISLOM ISLOMOV',
+    paymentInstructionsPlaceholder: 'Дополнительный текст для покупателей',
+    saveSettings: 'Сохранить',
+    settingsSaved: 'Сохранено',
+    saveSettingsFailed: 'Ошибка сохранения',
+    confirmPayment: 'Подтвердить оплату',
+    receiptLabel: 'Чек',
   },
 };
 

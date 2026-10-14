@@ -28,6 +28,12 @@ export const shops = pgTable('shops', {
   currency: text('currency').notNull().default('XTR'),
   botUsername: text('bot_username'),
   starsEnabled: boolean('stars_enabled').notNull().default(true),
+  /** Bank card number customers transfer manual payments to. */
+  cardNumber: text('card_number'),
+  /** Name on the bank card, shown to customers alongside the number. */
+  cardHolder: text('card_holder'),
+  /** Free-form instructions shown at checkout (e.g. "send receipt here"). */
+  paymentInstructions: text('payment_instructions'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -123,6 +129,8 @@ export const orders = pgTable('orders', {
   total: integer('total').notNull(),
   currency: text('currency').notNull(),
   paymentChargeId: text('payment_charge_id'),
+  /** Customer-submitted payment proof, stored as a data URL (base64 image). */
+  receiptImage: text('receipt_image'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
