@@ -9,8 +9,21 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Allows access through a tunnel host (e.g. ngrok/localtunnel/cloudflared) for
+    // testing the Mini App inside Telegram, which requires an HTTPS origin.
+    allowedHosts: true,
     proxy: {
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
+      '/webhook': { target: 'http://localhost:3000', changeOrigin: true },
+    },
+  },
+  preview: {
+    host: true,
+    port: 5173,
+    allowedHosts: true,
+    proxy: {
+      '/api': { target: 'http://localhost:3000', changeOrigin: true },
+      '/webhook': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
   build: {

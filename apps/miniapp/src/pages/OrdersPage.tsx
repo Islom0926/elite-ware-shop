@@ -5,23 +5,26 @@ import { useAsync } from '../hooks/useAsync.js';
 import { formatPrice, pluralize } from '../lib/format.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
+import { useLang } from '../i18n/LanguageProvider.js';
+import type { Dictionary } from '../i18n/translations.js';
 
-const STATUS_META: Record<OrderStatus, { label: string; type: 'number' | 'dot' }> = {
-  pending: { label: 'Pending', type: 'dot' },
-  awaiting_payment: { label: 'Awaiting payment', type: 'dot' },
-  paid: { label: 'Paid', type: 'dot' },
-  cancelled: { label: 'Cancelled', type: 'dot' },
-  fulfilled: { label: 'Fulfilled', type: 'dot' },
+const STATUS_LABEL_KEY: Record<OrderStatus, keyof Dictionary> = {
+  pending: 'statusPending',
+  awaiting_payment: 'statusAwaitingPayment',
+  paid: 'statusPaid',
+  cancelled: 'statusCancelled',
+  fulfilled: 'statusFulfilled',
 };
 
 export function OrdersPage(): React.JSX.Element {
   const { data: orders, loading, error } = useAsync(() => api.getOrders(), []);
+  const { t } = useLang();
 
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} />;
   if (!orders || orders.length === 0) {
     return (
-      <Placeholder header="No orders yet" description="Your orders will appear here">
+      <Placeholder header={t('noOrdersYetHeader')} description={t('noOrdersYetDesc')}>
         <span style={{ fontSize: 48 }}>📦</span>
       </Placeholder>
     );
@@ -29,17 +32,17 @@ export function OrdersPage(): React.JSX.Element {
 
   return (
     <List>
-      <Section header="My orders">
+      <Section header={t('myOrdersHeader')}>
         {orders.map((order) => (
           <Cell
             key={order.id}
-            subtitle={pluralize(order.items.length, 'item', 'items')}
+            subtitle={pluralize(order.items.length, t('item'), t('items'))}
             after={formatPrice(order.total, order.currency)}
             description={<Badge type="dot" />}
-            hint={STATUS_META[order.status].label}
+            hint={t(STATUS_LABEL_KEY[order.status])}
             multiline
           >
-            Order #{order.id.slice(0, 8)}
+            {t('orderNumber', { id: order.id.slice(0, 8) })}
           </Cell>
         ))}
       </Section>

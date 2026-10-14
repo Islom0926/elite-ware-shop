@@ -21,6 +21,8 @@ export function authRoutes(): Hono<AppBindings> {
       maxAgeSeconds: env.INITDATA_MAX_AGE_SECONDS,
     });
     if (!result.ok) {
+      // eslint-disable-next-line no-console
+      console.error('[auth debug] validation failed:', result.error.code, 'raw initData:', initData);
       throw ApiError.unauthorized(`initData validation failed (${result.error.code})`);
     }
     if (!result.data.user) {

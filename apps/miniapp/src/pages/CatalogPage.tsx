@@ -8,11 +8,14 @@ import { useSession } from '../providers/SessionProvider.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
 import { ProductCard } from '../components/ProductCard.js';
+import { useLang } from '../i18n/LanguageProvider.js';
+import { LANGS } from '../i18n/translations.js';
 
 export function CatalogPage(): React.JSX.Element {
   const navigate = useNavigate();
   const { itemCount } = useCart();
   const { isAdmin } = useSession();
+  const { t, lang, setLang } = useLang();
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
 
@@ -29,15 +32,30 @@ export function CatalogPage(): React.JSX.Element {
           onClick={() => navigate('/cart')}
           after={itemCount > 0 ? <Badge type="number">{itemCount}</Badge> : undefined}
         >
-          🛒 Cart
+          {t('cart')}
         </Cell>
-        <Cell onClick={() => navigate('/orders')}>📦 My orders</Cell>
-        {isAdmin && <Cell onClick={() => navigate('/admin')}>🛠️ Admin</Cell>}
+        <Cell onClick={() => navigate('/orders')}>{t('myOrders')}</Cell>
+        {isAdmin && <Cell onClick={() => navigate('/admin')}>{t('admin')}</Cell>}
       </Section>
 
-      <Section header="Catalog">
+      <Section>
+        <div style={{ display: 'flex', gap: 8, padding: '8px 16px', flexWrap: 'wrap' }}>
+          {LANGS.map(({ code, label }) => (
+            <Button
+              key={code}
+              size="s"
+              mode={lang === code ? 'filled' : 'bezeled'}
+              onClick={() => setLang(code)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </Section>
+
+      <Section header={t('catalog')}>
         <Input
-          placeholder="Search products"
+          placeholder={t('searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -47,7 +65,7 @@ export function CatalogPage(): React.JSX.Element {
             mode={categoryId === undefined ? 'filled' : 'bezeled'}
             onClick={() => setCategoryId(undefined)}
           >
-            All
+            {t('all')}
           </Button>
           {categories.data?.map((category) => (
             <Button
@@ -67,7 +85,7 @@ export function CatalogPage(): React.JSX.Element {
       {products.data && (
         <Section>
           {products.data.items.length === 0 ? (
-            <Cell>No products found</Cell>
+            <Cell>{t('noProductsFound')}</Cell>
           ) : (
             products.data.items.map((product) => <ProductCard key={product.id} product={product} />)
           )}

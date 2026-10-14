@@ -8,11 +8,13 @@ import { useMainButton } from '../hooks/useMainButton.js';
 import { formatPrice } from '../lib/format.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
+import { useLang } from '../i18n/LanguageProvider.js';
 
 export function ProductPage(): React.JSX.Element {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const { add } = useCart();
+  const { t } = useLang();
   const [adding, setAdding] = useState(false);
 
   const { data: product, loading, error } = useAsync(() => api.getProduct(id), [id]);
@@ -30,7 +32,7 @@ export function ProductPage(): React.JSX.Element {
   }, [product, add, navigate]);
 
   useMainButton({
-    text: outOfStock ? 'Out of stock' : 'Add to cart',
+    text: outOfStock ? t('outOfStock') : t('addToCart'),
     visible: Boolean(product),
     enabled: !outOfStock,
     loading: adding,
@@ -38,7 +40,7 @@ export function ProductPage(): React.JSX.Element {
   });
 
   if (loading) return <Loader />;
-  if (error || !product) return <ErrorView message={error ?? 'Product not found'} />;
+  if (error || !product) return <ErrorView message={error ?? t('productNotFound')} />;
 
   return (
     <List>
@@ -54,8 +56,12 @@ export function ProductPage(): React.JSX.Element {
         </div>
       </Section>
       <Section>
-        <Cell after={product.stock === null ? 'In stock' : `${product.stock} left`}>
-          Availability
+        <Cell
+          after={
+            product.stock === null ? t('inStock') : t('leftStock', { count: product.stock })
+          }
+        >
+          {t('availability')}
         </Cell>
       </Section>
     </List>

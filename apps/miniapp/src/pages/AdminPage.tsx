@@ -7,16 +7,18 @@ import { useSession } from '../providers/SessionProvider.js';
 import { formatPrice } from '../lib/format.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
+import { useLang } from '../i18n/LanguageProvider.js';
 
 export function AdminPage(): React.JSX.Element {
   const { isAdmin } = useSession();
+  const { t } = useLang();
   const [reloadKey, setReloadKey] = useState(0);
   const reload = (): void => setReloadKey((k) => k + 1);
 
   const shop = useAsync(() => api.getShop(), []);
   const orders = useAsync(() => api.adminGetOrders(), [reloadKey]);
 
-  if (!isAdmin) return <ErrorView message="Admins only" />;
+  if (!isAdmin) return <ErrorView message={t('adminsOnly')} />;
 
   const setStatus = async (id: string, status: OrderStatus): Promise<void> => {
     await api.adminSetOrderStatus(id, status);
@@ -27,10 +29,10 @@ export function AdminPage(): React.JSX.Element {
     <List>
       <NewProductForm currency={shop.data?.currency ?? 'XTR'} onCreated={reload} />
 
-      <Section header="All orders">
+      <Section header={t('allOrders')}>
         {orders.loading && <Loader />}
         {orders.error && <ErrorView message={orders.error} />}
-        {orders.data?.length === 0 && <Cell>No orders</Cell>}
+        {orders.data?.length === 0 && <Cell>{t('noOrders')}</Cell>}
         {orders.data?.map((order) => (
           <Cell
             key={order.id}
@@ -43,7 +45,7 @@ export function AdminPage(): React.JSX.Element {
                     mode="bezeled"
                     onClick={() => void setStatus(order.id, 'fulfilled')}
                   >
-                    Fulfill
+                    {t('fulfill')}
                   </Button>
                 )}
                 {(order.status === 'pending' || order.status === 'awaiting_payment') && (
@@ -52,7 +54,7 @@ export function AdminPage(): React.JSX.Element {
                     mode="plain"
                     onClick={() => void setStatus(order.id, 'cancelled')}
                   >
-                    Cancel
+                    {t('cancel')}
                   </Button>
                 )}
               </div>
@@ -74,6 +76,7 @@ function NewProductForm({
   currency: string;
   onCreated: () => void;
 }): React.JSX.Element {
+  const { t } = useLang();
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
@@ -97,37 +100,37 @@ function NewProductForm({
     };
     try {
       const created = await api.adminCreateProduct(input);
-      setMessage(`Created "${created.title}"`);
+      setMessage(t('createdProduct', { title: created.title }));
       setTitle('');
       setSlug('');
       setPrice('');
       setDescription('');
       onCreated();
     } catch (err) {
-      setMessage(err instanceof ApiClientError ? err.message : 'Failed to create product');
+      setMessage(err instanceof ApiClientError ? err.message : t('failedToCreateProduct'));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Section header="Add product">
-      <Input header="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <Input header="Slug (kebab-case)" value={slug} onChange={(e) => setSlug(e.target.value)} />
+    <Section header={t('addProduct')}>
+      <Input header={t('titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
+      <Input header={t('slugLabel')} value={slug} onChange={(e) => setSlug(e.target.value)} />
       <Input
-        header={`Price (${currency})`}
+        header={t('priceLabel', { currency })}
         type="number"
         value={price}
         onChange={(e) => setPrice(e.target.value)}
       />
       <Textarea
-        header="Description"
+        header={t('descriptionLabel')}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
       <div style={{ padding: 16 }}>
         <Button stretched loading={busy} disabled={!title || !slug} onClick={() => void submit()}>
-          Create product
+          {t('createProduct')}
         </Button>
         {message && <Cell>{message}</Cell>}
       </div>

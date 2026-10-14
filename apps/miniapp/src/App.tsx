@@ -3,6 +3,7 @@ import { miniApp, retrieveLaunchParams, useSignal } from '@telegram-apps/sdk-rea
 import { AppRoot, Placeholder } from '@telegram-apps/telegram-ui';
 import { SessionProvider, useSession } from './providers/SessionProvider.js';
 import { CartProvider } from './providers/CartProvider.js';
+import { LanguageProvider, useLang } from './i18n/LanguageProvider.js';
 import { useBackButton } from './hooks/useBackButton.js';
 import { Loader } from './components/Loader.js';
 import { CatalogPage } from './pages/CatalogPage.js';
@@ -22,11 +23,12 @@ function platform(): 'ios' | 'base' {
 function Shell(): React.JSX.Element {
   useBackButton();
   const { status, error } = useSession();
+  const { t } = useLang();
 
   if (status === 'loading') return <Loader />;
   if (status === 'error') {
     return (
-      <Placeholder header="Couldn’t sign you in" description={error ?? 'Please reopen the app'}>
+      <Placeholder header={t('couldNotSignIn')} description={error ?? t('pleaseReopen')}>
         <span style={{ fontSize: 48 }}>🔒</span>
       </Placeholder>
     );
@@ -49,13 +51,15 @@ export function App(): React.JSX.Element {
 
   return (
     <AppRoot appearance={isDark ? 'dark' : 'light'} platform={platform()}>
-      <SessionProvider>
-        <CartProvider>
-          <HashRouter>
-            <Shell />
-          </HashRouter>
-        </CartProvider>
-      </SessionProvider>
+      <LanguageProvider>
+        <SessionProvider>
+          <CartProvider>
+            <HashRouter>
+              <Shell />
+            </HashRouter>
+          </CartProvider>
+        </SessionProvider>
+      </LanguageProvider>
     </AppRoot>
   );
 }

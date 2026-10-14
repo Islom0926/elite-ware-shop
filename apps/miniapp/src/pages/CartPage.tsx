@@ -7,10 +7,12 @@ import { useCart } from '../providers/CartProvider.js';
 import { useMainButton } from '../hooks/useMainButton.js';
 import { formatPrice } from '../lib/format.js';
 import { Loader } from '../components/Loader.js';
+import { useLang } from '../i18n/LanguageProvider.js';
 
 export function CartPage(): React.JSX.Element {
   const navigate = useNavigate();
   const { cart, loading, setQuantity, remove } = useCart();
+  const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,16 +30,17 @@ export function CartPage(): React.JSX.Element {
         navigate('/orders');
       }
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Checkout failed');
+      setError(err instanceof ApiClientError ? err.message : t('checkoutFailed'));
     } finally {
       setBusy(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const hasItems = (cart?.lines.length ?? 0) > 0;
 
   useMainButton({
-    text: cart ? `Checkout · ${formatPrice(cart.total, cart.currency)}` : 'Checkout',
+    text: cart ? t('checkoutWithPrice', { price: formatPrice(cart.total, cart.currency) }) : t('checkout'),
     visible: hasItems,
     loading: busy,
     onClick: checkout,
@@ -47,7 +50,7 @@ export function CartPage(): React.JSX.Element {
 
   if (!hasItems) {
     return (
-      <Placeholder header="Your cart is empty" description="Add products from the catalog">
+      <Placeholder header={t('cartEmptyHeader')} description={t('cartEmptyDesc')}>
         <span style={{ fontSize: 48 }}>🛒</span>
       </Placeholder>
     );
@@ -84,7 +87,7 @@ export function CartPage(): React.JSX.Element {
                   +
                 </Button>
                 <Button size="s" mode="plain" onClick={() => void remove(line.product.id)}>
-                  Remove
+                  {t('remove')}
                 </Button>
               </div>
             }
@@ -95,7 +98,7 @@ export function CartPage(): React.JSX.Element {
         ))}
       </Section>
       <Section>
-        <Cell after={cart ? formatPrice(cart.total, cart.currency) : ''}>Total</Cell>
+        <Cell after={cart ? formatPrice(cart.total, cart.currency) : ''}>{t('total')}</Cell>
       </Section>
     </List>
   );
