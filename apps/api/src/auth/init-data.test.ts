@@ -11,7 +11,7 @@ const BOT_TOKEN = '7654321:AAFakeBotTokenForTestsOnly_0123456789';
  */
 function signInitData(fields: Record<string, string>, token: string = BOT_TOKEN): string {
   const dataCheckString = Object.keys(fields)
-    .filter((key) => key !== 'hash' && key !== 'signature')
+    .filter((key) => key !== 'hash')
     .sort()
     .map((key) => `${key}=${fields[key]}`)
     .join('\n');
@@ -121,13 +121,28 @@ describe('validateInitData', () => {
     expect(result.error.code).toBe('malformed');
   });
 
-  it('ignores the signature field in the HMAC check', () => {
+  it('includes the signature field in the HMAC check and still parses it out', () => {
     const fields = { ...makeFields(recent), signature: 'ed25519-third-party-signature' };
     const result = validateInitData(signInitData(fields), BOT_TOKEN, { now });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.signature).toBe('ed25519-third-party-signature');
+  });
+
+  it('rejects initData signed excluding the signature field (stale algorithm)', () => {
+    const fields = { ...makeFields(recent), signature: 'ed25519-third-party-signature' };
+    const dataCheckString = Object.keys(fields)
+      .filter((key) => key !== 'hash' && key !== 'signature')
+      .sort()
+      .map((key) => `${key}=${fields[key as keyof typeof fields]}`)
+      .join('\n');
+    const secretKey = createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+    const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+    const initData = new URLSearchParams({ ...fields, hash }).toString();
+
+    const result = validateInitData(initData, BOT_TOKEN, { now });
+    expect(result.ok).toBe(false);
   });
 
   it('rejects a hash of the wrong length without throwing', () => {

@@ -66,18 +66,19 @@ function deriveSecretKey(botToken: string): Buffer {
 }
 
 /**
- * Builds the data-check-string: every field except `hash` and `signature`,
- * sorted alphabetically by key, formatted as `key=value`, joined by newlines.
- * Values are the URL-decoded ones (as produced by `URLSearchParams`).
+ * Builds the data-check-string: every field except `hash`, sorted
+ * alphabetically by key, formatted as `key=value`, joined by newlines. Values
+ * are the URL-decoded ones (as produced by `URLSearchParams`).
  *
- * `signature` is excluded because it belongs to Telegram's separate Ed25519
- * third-party validation flow and is not part of the HMAC check string used by
- * current Telegram clients.
+ * `signature` (the separate Ed25519 third-party-validation field) IS included
+ * here: current Telegram clients sign the HMAC check string with it present,
+ * confirmed against real captured initData — excluding it produces a hash
+ * mismatch even with the correct bot token.
  */
 function buildDataCheckString(params: URLSearchParams): string {
   const pairs: string[] = [];
   for (const [key, value] of params.entries()) {
-    if (key === 'hash' || key === 'signature') continue;
+    if (key === 'hash') continue;
     pairs.push(`${key}=${value}`);
   }
   pairs.sort();
