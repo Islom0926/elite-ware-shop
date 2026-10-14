@@ -16,9 +16,23 @@ interface CartValue {
   loading: boolean;
   itemCount: number;
   refresh: () => Promise<void>;
-  add: (productId: string, quantity: number) => Promise<void>;
-  setQuantity: (productId: string, quantity: number) => Promise<void>;
-  remove: (productId: string) => Promise<void>;
+  add: (
+    productId: string,
+    quantity: number,
+    selectedColor?: string | null,
+    selectedSize?: string | null,
+  ) => Promise<void>;
+  setQuantity: (
+    productId: string,
+    quantity: number,
+    selectedColor?: string | null,
+    selectedSize?: string | null,
+  ) => Promise<void>;
+  remove: (
+    productId: string,
+    selectedColor?: string | null,
+    selectedSize?: string | null,
+  ) => Promise<void>;
 }
 
 const CartContext = createContext<CartValue | null>(null);
@@ -41,17 +55,36 @@ export function CartProvider({ children }: { children: ReactNode }): React.JSX.E
     if (status === 'ready') void refresh();
   }, [status, refresh]);
 
-  const add = useCallback(async (productId: string, quantity: number) => {
-    setCart(await api.addToCart(productId, quantity));
-  }, []);
+  const add = useCallback(
+    async (
+      productId: string,
+      quantity: number,
+      selectedColor?: string | null,
+      selectedSize?: string | null,
+    ) => {
+      setCart(await api.addToCart(productId, quantity, selectedColor, selectedSize));
+    },
+    [],
+  );
 
-  const setQuantity = useCallback(async (productId: string, quantity: number) => {
-    setCart(await api.setCartItem(productId, quantity));
-  }, []);
+  const setQuantity = useCallback(
+    async (
+      productId: string,
+      quantity: number,
+      selectedColor?: string | null,
+      selectedSize?: string | null,
+    ) => {
+      setCart(await api.setCartItem(productId, quantity, selectedColor, selectedSize));
+    },
+    [],
+  );
 
-  const remove = useCallback(async (productId: string) => {
-    setCart(await api.removeCartItem(productId));
-  }, []);
+  const remove = useCallback(
+    async (productId: string, selectedColor?: string | null, selectedSize?: string | null) => {
+      setCart(await api.removeCartItem(productId, selectedColor, selectedSize));
+    },
+    [],
+  );
 
   const value = useMemo<CartValue>(
     () => ({ cart, loading, itemCount: cart?.itemCount ?? 0, refresh, add, setQuantity, remove }),

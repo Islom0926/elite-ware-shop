@@ -13,13 +13,16 @@ export function ProductCard({ product }: { product: Product }): React.JSX.Elemen
   const [favorite, setFavorite] = useState(() => isFavorite(product.id));
   const [adding, setAdding] = useState(false);
   const outOfStock = product.stock !== null && product.stock <= 0;
+  const hasVariants = product.colors.length > 0 || product.sizes.length > 0;
 
-  const onAdd = async (e: React.MouseEvent): Promise<void> => {
-    e.stopPropagation();
+  const onBuyNow = async (e: React.MouseEvent): Promise<void> => {
     if (outOfStock || adding) return;
+    if (hasVariants) return; // let the click bubble to open the product page for selection
+    e.stopPropagation();
     setAdding(true);
     try {
       await add(product.id, 1);
+      navigate('/cart');
     } finally {
       setAdding(false);
     }
@@ -121,22 +124,19 @@ export function ProductCard({ product }: { product: Product }): React.JSX.Elemen
         >
           {product.title}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand)' }}>
-            {formatPrice(product.price, product.currency)}
-          </span>
-          {!outOfStock && (
-            <button
-              type="button"
-              className="chip-btn brand press-anim"
-              onClick={(e) => void onAdd(e)}
-              aria-label={t('addToCart')}
-              style={{ width: 28, height: 28, fontSize: 16, fontWeight: 700 }}
-            >
-              {adding ? '…' : '+'}
-            </button>
-          )}
-        </div>
+        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand)' }}>
+          {formatPrice(product.price, product.currency)}
+        </span>
+        {!outOfStock && (
+          <button
+            type="button"
+            className="pill-btn press-anim"
+            onClick={(e) => void onBuyNow(e)}
+            style={{ padding: '9px 0', fontSize: 13, marginTop: 2 }}
+          >
+            {adding ? '…' : t('buyNow')}
+          </button>
+        )}
       </div>
     </div>
   );

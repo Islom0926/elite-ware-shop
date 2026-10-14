@@ -49,6 +49,36 @@ function assertStock(product: ProductRow, requestedQty: number): void {
   }
 }
 
+/**
+ * Validates the chosen color/size against the product's options (required
+ * whenever the product defines any) and normalizes "no selection" to `''`
+ * so the cart-item uniqueness constraint — which can't treat two NULLs as
+ * equal — still de-dupes plain (variant-less) add-to-cart calls.
+ */
+function resolveVariant(
+  product: ProductRow,
+  selectedColor: string | null | undefined,
+  selectedSize: string | null | undefined,
+): { colorKey: string; sizeKey: string } {
+  if (product.colors.length > 0) {
+    if (!selectedColor) {
+      throw ApiError.badRequest('color_required', `Choose a color for "${product.title}"`);
+    }
+    if (!product.colors.some((c) => c.name === selectedColor)) {
+      throw ApiError.badRequest('invalid_color', `"${selectedColor}" is not a valid color`);
+    }
+  }
+  if (product.sizes.length > 0) {
+    if (!selectedSize) {
+      throw ApiError.badRequest('size_required', `Choose a size for "${product.title}"`);
+    }
+    if (!product.sizes.includes(selectedSize)) {
+      throw ApiError.badRequest('invalid_size', `"${selectedSize}" is not a valid size`);
+    }
+  }
+  return { colorKey: selectedColor ?? '', sizeKey: selectedSize ?? '' };
+}
+
 export async function getCart(db: Database, shopId: string, userId: number): Promise<Cart> {
   const cart = await getOrCreateCart(db, shopId, userId);
   const [shop, rows] = await Promise.all([
@@ -65,6 +95,8 @@ export async function getCart(db: Database, shopId: string, userId: number): Pro
     .map((r) => ({
       product: toProductDTO(r.product),
       quantity: r.item.quantity,
+      selectedColor: r.item.selectedColor || null,
+      selectedSize: r.item.selectedSize || null,
       subtotal: r.product.price * r.item.quantity,
     }));
 
@@ -82,21 +114,40 @@ export async function addItem(
   userId: number,
   productId: string,
   quantity: number,
+  selectedColor?: string | null,
+  selectedSize?: string | null,
 ): Promise<Cart> {
   const cart = await getOrCreateCart(db, shopId, userId);
   const product = await loadProductForShop(db, shopId, productId);
+  const { colorKey, sizeKey } = resolveVariant(product, selectedColor, selectedSize);
 
   const existing = await db.query.cartItems.findFirst({
-    where: and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, productId)),
+    where: and(
+      eq(cartItems.cartId, cart.id),
+      eq(cartItems.productId, productId),
+      eq(cartItems.selectedColor, colorKey),
+      eq(cartItems.selectedSize, sizeKey),
+    ),
   });
   const newQty = (existing?.quantity ?? 0) + quantity;
   assertStock(product, newQty);
 
   await db
     .insert(cartItems)
-    .values({ cartId: cart.id, productId, quantity: newQty })
+    .values({
+      cartId: cart.id,
+      productId,
+      quantity: newQty,
+      selectedColor: colorKey,
+      selectedSize: sizeKey,
+    })
     .onConflictDoUpdate({
-      target: [cartItems.cartId, cartItems.productId],
+      target: [
+        cartItems.cartId,
+        cartItems.productId,
+        cartItems.selectedColor,
+        cartItems.selectedSize,
+      ],
       set: { quantity: newQty },
     });
   await touchCart(db, cart.id);
@@ -110,21 +161,25 @@ export async function setItemQuantity(
   userId: number,
   productId: string,
   quantity: number,
+  selectedColor?: string | null,
+  selectedSize?: string | null,
 ): Promise<Cart> {
   const cart = await getOrCreateCart(db, shopId, userId);
+  const colorKey = selectedColor ?? '';
+  const sizeKey = selectedSize ?? '';
+  const lineFilter = and(
+    eq(cartItems.cartId, cart.id),
+    eq(cartItems.productId, productId),
+    eq(cartItems.selectedColor, colorKey),
+    eq(cartItems.selectedSize, sizeKey),
+  );
 
   if (quantity === 0) {
-    await db
-      .delete(cartItems)
-      .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, productId)));
+    await db.delete(cartItems).where(lineFilter);
   } else {
     const product = await loadProductForShop(db, shopId, productId);
     assertStock(product, quantity);
-    const updated = await db
-      .update(cartItems)
-      .set({ quantity })
-      .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, productId)))
-      .returning();
+    const updated = await db.update(cartItems).set({ quantity }).where(lineFilter).returning();
     if (updated.length === 0) {
       throw ApiError.notFound('Item is not in the cart');
     }

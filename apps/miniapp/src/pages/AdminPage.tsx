@@ -1,10 +1,20 @@
 import { useRef, useState } from 'react';
-import { Badge, Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui';
+import {
+  Badge,
+  Button,
+  Cell,
+  Input,
+  List,
+  Section,
+  Select,
+  Textarea,
+} from '@telegram-apps/telegram-ui';
 import type {
   Banner,
   Category,
   OrderStatus,
   Product,
+  ProductColor,
   ProductInput,
   PromoCode,
   ShopConfig,
@@ -25,6 +35,24 @@ const STATUS_LABEL_KEY: Record<OrderStatus, keyof Dictionary> = {
   paid: 'statusPaid',
   cancelled: 'statusCancelled',
   fulfilled: 'statusFulfilled',
+  accepted: 'statusAccepted',
+  in_delivery: 'statusInDelivery',
+  at_warehouse: 'statusAtWarehouse',
+  shipped: 'statusShipped',
+};
+
+/** The next status in the post-payment fulfillment pipeline, if any. */
+const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
+  paid: 'accepted',
+  accepted: 'in_delivery',
+  in_delivery: 'at_warehouse',
+  at_warehouse: 'shipped',
+};
+const NEXT_STATUS_LABEL_KEY: Partial<Record<OrderStatus, keyof Dictionary>> = {
+  paid: 'acceptOrder',
+  accepted: 'startDelivery',
+  in_delivery: 'markAtWarehouse',
+  at_warehouse: 'markShipped',
 };
 
 export function AdminPage(): React.JSX.Element {
@@ -80,16 +108,21 @@ export function AdminPage(): React.JSX.Element {
                     {t('confirmPayment')}
                   </Button>
                 )}
-                {order.status === 'paid' && (
+                {NEXT_STATUS[order.status] && (
                   <Button
                     size="s"
                     mode="bezeled"
-                    onClick={() => void setStatus(order.id, 'fulfilled')}
+                    onClick={() =>
+                      void setStatus(order.id, NEXT_STATUS[order.status] as OrderStatus)
+                    }
                   >
-                    {t('fulfill')}
+                    {t(NEXT_STATUS_LABEL_KEY[order.status] as keyof Dictionary)}
                   </Button>
                 )}
-                {(order.status === 'pending' || order.status === 'awaiting_payment') && (
+                {(order.status === 'pending' ||
+                  order.status === 'awaiting_payment' ||
+                  order.status === 'paid' ||
+                  order.status === 'accepted') && (
                   <Button
                     size="s"
                     mode="plain"
@@ -453,9 +486,14 @@ function ProductsManager({ currency }: { currency: string }): React.JSX.Element 
   const [reloadKey, setReloadKey] = useState(0);
   const reload = (): void => setReloadKey((k) => k + 1);
   const products = useAsync(() => api.adminListProducts(), [reloadKey]);
+  const categories = useAsync(() => api.getCategories(), []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editPrice, setEditPrice] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [editColors, setEditColors] = useState<ProductColor[]>([]);
+  const [editSizes, setEditSizes] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -463,19 +501,26 @@ function ProductsManager({ currency }: { currency: string }): React.JSX.Element 
     setEditingId(product.id);
     setEditTitle(product.title);
     setEditPrice(String(product.price));
+    setEditCategoryId(product.categoryId ?? '');
+    setEditImages(product.images);
+    setEditColors(product.colors);
+    setEditSizes(product.sizes);
   };
 
   const saveEdit = async (product: Product): Promise<void> => {
     setBusy(true);
     setMessage(null);
     const input: ProductInput = {
-      categoryId: product.categoryId,
+      categoryId: editCategoryId || null,
       slug: product.slug,
       title: editTitle.trim(),
       description: product.description,
       price: Number(editPrice) || 0,
       currency: product.currency,
       imageUrl: product.imageUrl,
+      images: editImages,
+      colors: editColors,
+      sizes: editSizes,
       stock: product.stock,
       isActive: product.isActive,
     };
@@ -510,30 +555,53 @@ function ProductsManager({ currency }: { currency: string }): React.JSX.Element 
       {message && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{message}</Cell>}
       {products.data?.map((product: Product) =>
         editingId === product.id ? (
-          <Cell
+          <div
             key={product.id}
-            description={
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
-                <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-                <Input
-                  type="number"
-                  value={editPrice}
-                  onChange={(e) => setEditPrice(e.target.value)}
-                />
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <Button size="s" loading={busy} onClick={() => void saveEdit(product)}>
-                    {t('saveChanges')}
-                  </Button>
-                  <Button size="s" mode="plain" onClick={() => setEditingId(null)}>
-                    {t('cancel')}
-                  </Button>
-                </div>
-              </div>
-            }
-            multiline
+            style={{ paddingBottom: 12, borderBottom: '1px solid var(--chip-bg)' }}
           >
-            {product.title}
-          </Cell>
+            <Cell
+              description={
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                  <Input
+                    type="number"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                  />
+                  <Select
+                    value={editCategoryId}
+                    onChange={(e) => setEditCategoryId(e.target.value)}
+                  >
+                    <option value="">{t('noCategoryLabel')}</option>
+                    {categories.data?.map((category: Category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.title}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              }
+              multiline
+            >
+              {product.title}
+            </Cell>
+            <VariantFields
+              images={editImages}
+              setImages={setEditImages}
+              colors={editColors}
+              setColors={setEditColors}
+              sizes={editSizes}
+              setSizes={setEditSizes}
+            />
+            <div style={{ display: 'flex', gap: 6, padding: '0 16px' }}>
+              <Button size="s" loading={busy} onClick={() => void saveEdit(product)}>
+                {t('saveChanges')}
+              </Button>
+              <Button size="s" mode="plain" onClick={() => setEditingId(null)}>
+                {t('cancel')}
+              </Button>
+            </div>
+          </div>
         ) : (
           <Cell
             key={product.id}
@@ -666,6 +734,232 @@ function PromoCodesManager(): React.JSX.Element {
   );
 }
 
+/** Shared gallery/colors/sizes editor, used by both the create and edit product forms. */
+function VariantFields({
+  images,
+  setImages,
+  colors,
+  setColors,
+  sizes,
+  setSizes,
+}: {
+  images: string[];
+  setImages: (images: string[]) => void;
+  colors: ProductColor[];
+  setColors: (colors: ProductColor[]) => void;
+  sizes: string[];
+  setSizes: (sizes: string[]) => void;
+}): React.JSX.Element {
+  const { t } = useLang();
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const [colorEditIndex, setColorEditIndex] = useState<number | null>(null);
+  const [newColorName, setNewColorName] = useState('');
+  const [newSize, setNewSize] = useState('');
+
+  const onPickGalleryImages = async (files: FileList): Promise<void> => {
+    const compressed = await Promise.all(
+      Array.from(files).map((file) => fileToCompressedDataUrl(file, 1200, 0.75)),
+    );
+    setImages([...images, ...compressed]);
+  };
+
+  const onPickColorImage = async (file: File): Promise<void> => {
+    if (colorEditIndex === null) return;
+    const dataUrl = await fileToCompressedDataUrl(file, 800, 0.75);
+    setColors(colors.map((c, i) => (i === colorEditIndex ? { ...c, imageUrl: dataUrl } : c)));
+    setColorEditIndex(null);
+  };
+
+  const addColor = (): void => {
+    const name = newColorName.trim();
+    if (!name || colors.some((c) => c.name === name)) return;
+    setColors([...colors, { name, imageUrl: null }]);
+    setNewColorName('');
+  };
+
+  const addSize = (): void => {
+    const size = newSize.trim();
+    if (!size || sizes.includes(size)) return;
+    setSizes([...sizes, size]);
+    setNewSize('');
+  };
+
+  return (
+    <>
+      <div style={{ padding: '0 16px 4px', fontSize: 13, fontWeight: 700, opacity: 0.7 }}>
+        {t('productImagesLabel')}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          padding: '0 16px 12px',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
+        {images.map((img, i) => (
+          <div key={img.slice(0, 32) + i} style={{ position: 'relative' }}>
+            <img
+              src={img}
+              alt=""
+              style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }}
+            />
+            <button
+              type="button"
+              onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+              style={{
+                position: 'absolute',
+                top: -6,
+                right: -6,
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                border: 'none',
+                background: '#ff5a6a',
+                color: '#fff',
+                fontSize: 11,
+                lineHeight: '18px',
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            if (e.target.files?.length) void onPickGalleryImages(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        <Button size="s" mode="bezeled" onClick={() => galleryInputRef.current?.click()}>
+          {t('addImage')}
+        </Button>
+      </div>
+
+      <div style={{ padding: '0 16px 4px', fontSize: 13, fontWeight: 700, opacity: 0.7 }}>
+        {t('colorsLabel')}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          padding: '0 16px 12px',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
+        {colors.map((c, i) => (
+          <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              type="button"
+              onClick={() => {
+                setColorEditIndex(i);
+                colorInputRef.current?.click();
+              }}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                overflow: 'hidden',
+                border: 'none',
+                background: 'var(--chip-bg)',
+                cursor: 'pointer',
+                fontSize: 10,
+              }}
+              title={c.name}
+            >
+              {c.imageUrl ? (
+                <img
+                  src={c.imageUrl}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                c.name.slice(0, 3)
+              )}
+            </button>
+            <span style={{ fontSize: 12 }}>{c.name}</span>
+            <button
+              type="button"
+              onClick={() => setColors(colors.filter((_, idx) => idx !== i))}
+              style={{ border: 'none', background: 'none', color: '#ff5a6a', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      <input
+        ref={colorInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void onPickColorImage(file);
+          e.target.value = '';
+        }}
+      />
+      <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
+        <Input
+          placeholder={t('colorNamePlaceholder')}
+          value={newColorName}
+          onChange={(e) => setNewColorName(e.target.value)}
+        />
+        <Button size="s" disabled={!newColorName.trim()} onClick={addColor}>
+          {t('addColor')}
+        </Button>
+      </div>
+
+      <div style={{ padding: '0 16px 4px', fontSize: 13, fontWeight: 700, opacity: 0.7 }}>
+        {t('sizesLabel')}
+      </div>
+      <div style={{ display: 'flex', gap: 6, padding: '0 16px 12px', flexWrap: 'wrap' }}>
+        {sizes.map((size) => (
+          <span
+            key={size}
+            className="surface-row"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 10px',
+              fontSize: 12,
+            }}
+          >
+            {size}
+            <button
+              type="button"
+              onClick={() => setSizes(sizes.filter((s) => s !== size))}
+              style={{ border: 'none', background: 'none', color: '#ff5a6a', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
+        <Input
+          placeholder={t('sizePlaceholder')}
+          value={newSize}
+          onChange={(e) => setNewSize(e.target.value)}
+        />
+        <Button size="s" disabled={!newSize.trim()} onClick={addSize}>
+          {t('addSize')}
+        </Button>
+      </div>
+    </>
+  );
+}
+
 function ShopSettingsForm({
   shop,
   onSaved,
@@ -744,12 +1038,17 @@ function NewProductForm({
   onCreated: () => void;
 }): React.JSX.Element {
   const { t } = useLang();
+  const categories = useAsync(() => api.getCategories(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [colors, setColors] = useState<ProductColor[]>([]);
+  const [sizes, setSizes] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -761,13 +1060,16 @@ function NewProductForm({
     setBusy(true);
     setMessage(null);
     const input: ProductInput = {
-      categoryId: null,
+      categoryId: categoryId || null,
       slug: slug.trim(),
       title: title.trim(),
       description: description.trim(),
       price: Number(price) || 0,
       currency,
       imageUrl,
+      images,
+      colors,
+      sizes,
       stock: null,
       isActive: true,
     };
@@ -776,9 +1078,13 @@ function NewProductForm({
       setMessage(t('createdProduct', { title: created.title }));
       setTitle('');
       setSlug('');
+      setCategoryId('');
       setPrice('');
       setDescription('');
       setImageUrl(null);
+      setImages([]);
+      setColors([]);
+      setSizes([]);
       onCreated();
     } catch (err) {
       setMessage(err instanceof ApiClientError ? err.message : t('failedToCreateProduct'));
@@ -791,6 +1097,18 @@ function NewProductForm({
     <Section header={t('addProduct')}>
       <Input header={t('titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
       <Input header={t('slugLabel')} value={slug} onChange={(e) => setSlug(e.target.value)} />
+      <Select
+        header={t('categoryLabel')}
+        value={categoryId}
+        onChange={(e) => setCategoryId(e.target.value)}
+      >
+        <option value="">{t('noCategoryLabel')}</option>
+        {categories.data?.map((category: Category) => (
+          <option key={category.id} value={category.id}>
+            {category.title}
+          </option>
+        ))}
+      </Select>
       <Input
         header={t('priceLabel', { currency })}
         type="number"
@@ -824,6 +1142,16 @@ function NewProductForm({
           {t('chooseFile')}
         </Button>
       </div>
+
+      <VariantFields
+        images={images}
+        setImages={setImages}
+        colors={colors}
+        setColors={setColors}
+        sizes={sizes}
+        setSizes={setSizes}
+      />
+
       <div style={{ padding: 16 }}>
         <Button stretched loading={busy} disabled={!title || !slug} onClick={() => void submit()}>
           {t('createProduct')}

@@ -6,6 +6,8 @@ const line = (over: Partial<DraftLine> = {}): DraftLine => ({
   productId: 'p1',
   title: 'Tea',
   imageUrl: null,
+  selectedColor: null,
+  selectedSize: null,
   unitPrice: 50,
   quantity: 2,
   stock: null,

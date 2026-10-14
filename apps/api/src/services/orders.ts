@@ -12,6 +12,8 @@ export interface DraftLine {
   productId: string;
   title: string;
   imageUrl: string | null;
+  selectedColor: string | null;
+  selectedSize: string | null;
   unitPrice: number;
   quantity: number;
   /** `null` when not stock-tracked. */
@@ -23,6 +25,8 @@ export interface OrderDraft {
     productId: string;
     title: string;
     imageUrl: string | null;
+    selectedColor: string | null;
+    selectedSize: string | null;
     unitPrice: number;
     quantity: number;
     subtotal: number;
@@ -50,6 +54,8 @@ export function buildOrderDraft(lines: DraftLine[]): OrderDraft {
       productId: line.productId,
       title: line.title,
       imageUrl: line.imageUrl,
+      selectedColor: line.selectedColor,
+      selectedSize: line.selectedSize,
       unitPrice: line.unitPrice,
       quantity: line.quantity,
       subtotal: line.unitPrice * line.quantity,
@@ -81,6 +87,8 @@ async function loadCartDraft(
         productId: l.product.id,
         title: l.product.title,
         imageUrl: l.product.imageUrl,
+        selectedColor: l.item.selectedColor || null,
+        selectedSize: l.item.selectedSize || null,
         unitPrice: l.product.price,
         quantity: l.item.quantity,
         stock: l.product.stock,

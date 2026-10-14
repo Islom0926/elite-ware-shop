@@ -5,6 +5,8 @@ import { product } from './catalog.js';
 export const cartItemInput = z.object({
   productId: id,
   quantity: z.number().int().positive().max(999),
+  selectedColor: z.string().min(1).max(64).nullable().optional(),
+  selectedSize: z.string().min(1).max(32).nullable().optional(),
 });
 export type CartItemInput = z.infer<typeof cartItemInput>;
 
@@ -12,6 +14,8 @@ export type CartItemInput = z.infer<typeof cartItemInput>;
 export const cartLine = z.object({
   product,
   quantity: z.number().int().positive(),
+  selectedColor: z.string().nullable(),
+  selectedSize: z.string().nullable(),
   subtotal: moneyAmount,
 });
 export type CartLine = z.infer<typeof cartLine>;

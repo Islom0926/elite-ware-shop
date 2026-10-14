@@ -7,6 +7,10 @@ import { requireAuth } from '../auth/middleware.js';
 import { addItem, getCart, setItemQuantity } from '../services/cart.js';
 
 const productIdParam = z.object({ productId: z.uuid() });
+const variantQuery = z.object({
+  color: z.string().min(1).max(64).optional(),
+  size: z.string().min(1).max(32).optional(),
+});
 
 export function cartRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -19,8 +23,18 @@ export function cartRoutes(): Hono<AppBindings> {
 
   app.post('/items', zValidator('json', addToCartRequest), async (c) => {
     const { sub } = c.get('claims');
-    const { productId, quantity } = c.req.valid('json');
-    return c.json(await addItem(c.get('db'), c.get('shopId'), sub, productId, quantity));
+    const { productId, quantity, selectedColor, selectedSize } = c.req.valid('json');
+    return c.json(
+      await addItem(
+        c.get('db'),
+        c.get('shopId'),
+        sub,
+        productId,
+        quantity,
+        selectedColor,
+        selectedSize,
+      ),
+    );
   });
 
   app.patch(
@@ -30,16 +44,34 @@ export function cartRoutes(): Hono<AppBindings> {
     async (c) => {
       const { sub } = c.get('claims');
       const { productId } = c.req.valid('param');
-      const { quantity } = c.req.valid('json');
-      return c.json(await setItemQuantity(c.get('db'), c.get('shopId'), sub, productId, quantity));
+      const { quantity, selectedColor, selectedSize } = c.req.valid('json');
+      return c.json(
+        await setItemQuantity(
+          c.get('db'),
+          c.get('shopId'),
+          sub,
+          productId,
+          quantity,
+          selectedColor,
+          selectedSize,
+        ),
+      );
     },
   );
 
-  app.delete('/items/:productId', zValidator('param', productIdParam), async (c) => {
-    const { sub } = c.get('claims');
-    const { productId } = c.req.valid('param');
-    return c.json(await setItemQuantity(c.get('db'), c.get('shopId'), sub, productId, 0));
-  });
+  app.delete(
+    '/items/:productId',
+    zValidator('param', productIdParam),
+    zValidator('query', variantQuery),
+    async (c) => {
+      const { sub } = c.get('claims');
+      const { productId } = c.req.valid('param');
+      const { color, size } = c.req.valid('query');
+      return c.json(
+        await setItemQuantity(c.get('db'), c.get('shopId'), sub, productId, 0, color, size),
+      );
+    },
+  );
 
   return app;
 }

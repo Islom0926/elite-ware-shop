@@ -25,7 +25,7 @@ function TrashIcon(): React.JSX.Element {
 
 export function CartPage(): React.JSX.Element {
   const navigate = useNavigate();
-  const { cart, loading, setQuantity, remove } = useCart();
+  const { cart, loading, setQuantity, remove, refresh } = useCart();
   const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +53,14 @@ export function CartPage(): React.JSX.Element {
     setError(null);
     try {
       const { orderId } = await api.createOrder(promo?.code);
+      await refresh();
       navigate(`/pay/${orderId}`);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : t('orderCreateFailed'));
     } finally {
       setBusy(false);
     }
-  }, [navigate, t, promo]);
+  }, [navigate, t, promo, refresh]);
 
   const hasItems = (cart?.lines.length ?? 0) > 0;
   const finalTotal = promo ? promo.total : (cart?.total ?? 0);
@@ -96,7 +97,7 @@ export function CartPage(): React.JSX.Element {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {cart?.lines.map((line) => (
           <div
-            key={line.product.id}
+            key={`${line.product.id}:${line.selectedColor ?? ''}:${line.selectedSize ?? ''}`}
             className="card-surface"
             style={{ display: 'flex', gap: 12, padding: 12, position: 'relative' }}
           >
@@ -123,13 +124,25 @@ export function CartPage(): React.JSX.Element {
                 <span style={{ fontWeight: 700, fontSize: 15 }}>{line.product.title}</span>
                 <button
                   type="button"
-                  onClick={() => void remove(line.product.id)}
+                  onClick={() =>
+                    void remove(line.product.id, line.selectedColor, line.selectedSize)
+                  }
                   style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2 }}
                   aria-label={t('remove')}
                 >
                   <TrashIcon />
                 </button>
               </div>
+              {(line.selectedColor || line.selectedSize) && (
+                <span style={{ fontSize: 12, color: 'var(--tgui--hint_color)' }}>
+                  {[
+                    line.selectedColor && `${t('colorLabel')}: ${line.selectedColor}`,
+                    line.selectedSize && `${t('sizeLabel')}: ${line.selectedSize}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              )}
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand)' }}>
                 {formatPrice(line.product.price, line.product.currency)}
               </span>
@@ -138,7 +151,14 @@ export function CartPage(): React.JSX.Element {
                   type="button"
                   className="chip-btn brand press-anim"
                   style={{ width: 26, height: 26, fontSize: 15 }}
-                  onClick={() => void setQuantity(line.product.id, line.quantity - 1)}
+                  onClick={() =>
+                    void setQuantity(
+                      line.product.id,
+                      line.quantity - 1,
+                      line.selectedColor,
+                      line.selectedSize,
+                    )
+                  }
                 >
                   −
                 </button>
@@ -149,7 +169,14 @@ export function CartPage(): React.JSX.Element {
                   type="button"
                   className="chip-btn brand press-anim"
                   style={{ width: 26, height: 26, fontSize: 15 }}
-                  onClick={() => void setQuantity(line.product.id, line.quantity + 1)}
+                  onClick={() =>
+                    void setQuantity(
+                      line.product.id,
+                      line.quantity + 1,
+                      line.selectedColor,
+                      line.selectedSize,
+                    )
+                  }
                 >
                   +
                 </button>

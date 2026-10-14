@@ -7,7 +7,11 @@ export const orderStatus = z.enum([
   'awaiting_payment', // receipt submitted, waiting for admin confirmation
   'paid', // payment confirmed by admin
   'cancelled',
-  'fulfilled',
+  'fulfilled', // legacy terminal status, superseded by `shipped`
+  'accepted', // admin has accepted the paid order for fulfillment
+  'in_delivery', // courier picked it up, on the way to our warehouse/sorting
+  'at_warehouse', // arrived at our warehouse
+  'shipped', // handed off to the customer's chosen post/cargo service
 ]);
 export type OrderStatus = z.infer<typeof orderStatus>;
 
@@ -16,6 +20,8 @@ export const orderItem = z.object({
   productId: id,
   title: z.string().min(1).max(256),
   imageUrl: z.url().max(2_000_000).nullable(),
+  selectedColor: z.string().nullable(),
+  selectedSize: z.string().nullable(),
   unitPrice: moneyAmount,
   quantity: z.number().int().positive(),
   subtotal: moneyAmount,

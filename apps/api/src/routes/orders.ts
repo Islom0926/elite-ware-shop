@@ -12,9 +12,24 @@ import {
   previewPromoCode,
   submitOrderReceipt,
 } from '../services/orders.js';
+import { getUser } from '../services/users.js';
+import { notifyAdmins, notifyAdminsWithPhoto } from '../telegram/bot.js';
 import { ApiError } from '../lib/errors.js';
 
 const idParam = z.object({ id: z.uuid() });
+
+function formatAmount(amount: number, currency: string): string {
+  return `${new Intl.NumberFormat('ru-RU').format(amount)} ${currency}`;
+}
+
+function buyerLabel(user: {
+  firstName: string;
+  lastName: string | null;
+  username: string | null;
+}): string {
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
+  return user.username ? `${name} (@${user.username})` : name;
+}
 
 export function orderRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -23,7 +38,22 @@ export function orderRoutes(): Hono<AppBindings> {
   app.post('/', zValidator('json', createOrderRequest), async (c) => {
     const { sub } = c.get('claims');
     const { promoCode } = c.req.valid('json');
-    const order = await createOrderFromCart(c.get('db'), c.get('shopId'), sub, promoCode);
+    const db = c.get('db');
+    const order = await createOrderFromCart(db, c.get('shopId'), sub, promoCode);
+
+    const env = c.get('env');
+    if (env.ADMIN_TELEGRAM_IDS.length > 0) {
+      const buyer = await getUser(db, sub);
+      const itemsText = order.items.map((item) => `• ${item.title} × ${item.quantity}`).join('\n');
+      void notifyAdmins(
+        env.BOT_TOKEN,
+        env.ADMIN_TELEGRAM_IDS,
+        `🆕 <b>Yangi buyurtma</b> #${order.id.slice(0, 8)}\n` +
+          `${buyer ? buyerLabel(buyer) : sub}\n\n${itemsText}\n\n` +
+          `Jami: <b>${formatAmount(order.total, order.currency)}</b>`,
+      );
+    }
+
     const response: CreateOrderResponse = { orderId: order.id };
     return c.json(response, 201);
   });
@@ -57,13 +87,31 @@ export function orderRoutes(): Hono<AppBindings> {
     zValidator('json', submitReceiptRequest),
     async (c) => {
       const { sub } = c.get('claims');
+      const db = c.get('db');
+      const imageData = c.req.valid('json').imageData;
       const order = await submitOrderReceipt(
-        c.get('db'),
+        db,
         c.get('shopId'),
         c.req.valid('param').id,
         sub,
-        c.req.valid('json').imageData,
+        imageData,
       );
+
+      const env = c.get('env');
+      if (env.ADMIN_TELEGRAM_IDS.length > 0) {
+        const buyer = await getUser(db, sub);
+        const now = new Date();
+        void notifyAdminsWithPhoto(
+          env.BOT_TOKEN,
+          env.ADMIN_TELEGRAM_IDS,
+          imageData,
+          `🧾 <b>To'lov cheki</b> — buyurtma #${order.id.slice(0, 8)}\n` +
+            `${buyer ? buyerLabel(buyer) : sub}\n` +
+            `Sana: ${now.toLocaleDateString('uz-UZ')} ${now.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}\n` +
+            `Summa: <b>${formatAmount(order.total, order.currency)}</b>`,
+        );
+      }
+
       return c.json(order);
     },
   );

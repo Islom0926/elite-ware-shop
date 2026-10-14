@@ -16,13 +16,17 @@ const STATUS_LABEL_KEY: Record<OrderStatus, keyof Dictionary> = {
   paid: 'statusPaid',
   cancelled: 'statusCancelled',
   fulfilled: 'statusFulfilled',
+  accepted: 'statusAccepted',
+  in_delivery: 'statusInDelivery',
+  at_warehouse: 'statusAtWarehouse',
+  shipped: 'statusShipped',
 };
 
 type Tab = 'active' | 'completed' | 'cancelled';
 
 const TAB_STATUSES: Record<Tab, OrderStatus[]> = {
-  active: ['pending', 'awaiting_payment'],
-  completed: ['paid', 'fulfilled'],
+  active: ['pending', 'awaiting_payment', 'paid', 'accepted', 'in_delivery', 'at_warehouse'],
+  completed: ['shipped', 'fulfilled'],
   cancelled: ['cancelled'],
 };
 

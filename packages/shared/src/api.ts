@@ -21,6 +21,8 @@ export type AddToCartRequest = z.infer<typeof addToCartRequest>;
 
 export const updateCartItemRequest = z.object({
   quantity: z.number().int().min(0).max(999),
+  selectedColor: z.string().min(1).max(64).nullable().optional(),
+  selectedSize: z.string().min(1).max(32).nullable().optional(),
 });
 export type UpdateCartItemRequest = z.infer<typeof updateCartItemRequest>;
 

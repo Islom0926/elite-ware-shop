@@ -102,22 +102,42 @@ export class ApiClient {
     return this.request<Cart>('/cart');
   }
 
-  addToCart(productId: string, quantity: number): Promise<Cart> {
+  addToCart(
+    productId: string,
+    quantity: number,
+    selectedColor?: string | null,
+    selectedSize?: string | null,
+  ): Promise<Cart> {
     return this.request<Cart>('/cart/items', {
       method: 'POST',
-      body: JSON.stringify({ productId, quantity }),
+      body: JSON.stringify({ productId, quantity, selectedColor, selectedSize }),
     });
   }
 
-  setCartItem(productId: string, quantity: number): Promise<Cart> {
+  setCartItem(
+    productId: string,
+    quantity: number,
+    selectedColor?: string | null,
+    selectedSize?: string | null,
+  ): Promise<Cart> {
     return this.request<Cart>(`/cart/items/${productId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ quantity }),
+      body: JSON.stringify({ quantity, selectedColor, selectedSize }),
     });
   }
 
-  removeCartItem(productId: string): Promise<Cart> {
-    return this.request<Cart>(`/cart/items/${productId}`, { method: 'DELETE' });
+  removeCartItem(
+    productId: string,
+    selectedColor?: string | null,
+    selectedSize?: string | null,
+  ): Promise<Cart> {
+    const params = new URLSearchParams();
+    if (selectedColor) params.set('color', selectedColor);
+    if (selectedSize) params.set('size', selectedSize);
+    const qs = params.toString();
+    return this.request<Cart>(`/cart/items/${productId}${qs ? `?${qs}` : ''}`, {
+      method: 'DELETE',
+    });
   }
 
   // --- orders & payment ---

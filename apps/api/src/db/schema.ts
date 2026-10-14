@@ -2,6 +2,7 @@ import {
   bigint,
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -13,13 +14,28 @@ import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['customer', 'admin']);
 
+/**
+ * `fulfilled` is retained (but unused by new code) rather than removed, to
+ * avoid a risky enum-recreation migration; the post-payment pipeline now
+ * runs pending -> ... -> paid -> accepted -> in_delivery -> at_warehouse ->
+ * shipped (terminal), or cancelled at any point before shipped.
+ */
 export const orderStatusEnum = pgEnum('order_status', [
   'pending',
   'awaiting_payment',
   'paid',
   'cancelled',
   'fulfilled',
+  'accepted',
+  'in_delivery',
+  'at_warehouse',
+  'shipped',
 ]);
+
+export interface ProductColor {
+  name: string;
+  imageUrl: string | null;
+}
 
 export const shops = pgTable('shops', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -64,6 +80,12 @@ export const products = pgTable(
     price: integer('price').notNull(),
     currency: text('currency').notNull(),
     imageUrl: text('image_url'),
+    /** Extra gallery images (data URLs), shown alongside the cover `imageUrl`. */
+    images: jsonb('images').$type<string[]>().notNull().default([]),
+    /** Selectable colors, each optionally with its own preview image. */
+    colors: jsonb('colors').$type<ProductColor[]>().notNull().default([]),
+    /** Selectable sizes (e.g. "S", "41"), shown as chips. */
+    sizes: jsonb('sizes').$type<string[]>().notNull().default([]),
     /** NULL means the product is not stock-tracked. */
     stock: integer('stock'),
     isActive: boolean('is_active').notNull().default(true),
@@ -144,8 +166,22 @@ export const cartItems = pgTable(
       .notNull()
       .references(() => products.id, { onDelete: 'cascade' }),
     quantity: integer('quantity').notNull(),
+    /**
+     * Empty string (not NULL) when the product has no selectable color/size,
+     * so the uniqueness constraint below still de-dupes plain add-to-cart
+     * calls — Postgres treats NULL as distinct from NULL in unique indexes.
+     */
+    selectedColor: text('selected_color').notNull().default(''),
+    selectedSize: text('selected_size').notNull().default(''),
   },
-  (table) => [unique('cart_items_cart_product_unique').on(table.cartId, table.productId)],
+  (table) => [
+    unique('cart_items_cart_product_variant_unique').on(
+      table.cartId,
+      table.productId,
+      table.selectedColor,
+      table.selectedSize,
+    ),
+  ],
 );
 
 export const orders = pgTable('orders', {
@@ -182,6 +218,9 @@ export const orderItems = pgTable('order_items', {
     .references(() => products.id, { onDelete: 'restrict' }),
   title: text('title').notNull(),
   imageUrl: text('image_url'),
+  /** Snapshots of the variant picked at checkout, if the product had any. */
+  selectedColor: text('selected_color'),
+  selectedSize: text('selected_size'),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
   subtotal: integer('subtotal').notNull(),

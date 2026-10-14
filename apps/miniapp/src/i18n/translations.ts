@@ -142,6 +142,30 @@ export interface Dictionary {
   ordersTabActive: string;
   ordersTabCompleted: string;
   ordersTabCancelled: string;
+  statusAccepted: string;
+  statusInDelivery: string;
+  statusAtWarehouse: string;
+  statusShipped: string;
+  categoryLabel: string;
+  noCategoryLabel: string;
+  productImagesLabel: string;
+  addImage: string;
+  colorsLabel: string;
+  addColor: string;
+  colorNamePlaceholder: string;
+  sizesLabel: string;
+  addSize: string;
+  sizePlaceholder: string;
+  buyNow: string;
+  acceptOrder: string;
+  startDelivery: string;
+  markAtWarehouse: string;
+  markShipped: string;
+  colorLabel: string;
+  sizeLabel: string;
+  viewFullscreenLabel: string;
+  chooseColorFirst: string;
+  chooseSizeFirst: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -283,6 +307,30 @@ export const dictionaries: Record<Lang, Dictionary> = {
     ordersTabActive: 'Faol',
     ordersTabCompleted: 'Bajarilgan',
     ordersTabCancelled: 'Bekor qilingan',
+    statusAccepted: 'Qabul qilindi',
+    statusInDelivery: 'Yetkazib berish jarayonida',
+    statusAtWarehouse: 'Omborga kelib tushdi',
+    statusShipped: "Pochtaga jo'natildi",
+    categoryLabel: 'Kategoriya',
+    noCategoryLabel: 'Kategoriyasiz',
+    productImagesLabel: "Qo'shimcha rasmlar",
+    addImage: "Rasm qo'shish",
+    colorsLabel: 'Ranglar',
+    addColor: "Rang qo'shish",
+    colorNamePlaceholder: 'Masalan: Oq',
+    sizesLabel: "O'lchamlar",
+    addSize: "O'lcham qo'shish",
+    sizePlaceholder: 'Masalan: M',
+    buyNow: 'Sotib olish',
+    acceptOrder: 'Qabul qilish',
+    startDelivery: 'Yetkazishga yuborish',
+    markAtWarehouse: 'Omborga keldi',
+    markShipped: "Pochtaga jo'natildi",
+    colorLabel: 'Rang',
+    sizeLabel: "O'lcham",
+    viewFullscreenLabel: "To'liq ekranda ko'rish",
+    chooseColorFirst: 'Avval rangni tanlang',
+    chooseSizeFirst: "Avval o'lchamni tanlang",
   },
   ru: {
     cart: '🛒 Корзина',
@@ -422,6 +470,30 @@ export const dictionaries: Record<Lang, Dictionary> = {
     ordersTabActive: 'Активные',
     ordersTabCompleted: 'Завершённые',
     ordersTabCancelled: 'Отменённые',
+    statusAccepted: 'Принят',
+    statusInDelivery: 'В процессе доставки',
+    statusAtWarehouse: 'Поступил на склад',
+    statusShipped: 'Отправлен на почту',
+    categoryLabel: 'Категория',
+    noCategoryLabel: 'Без категории',
+    productImagesLabel: 'Дополнительные фото',
+    addImage: 'Добавить фото',
+    colorsLabel: 'Цвета',
+    addColor: 'Добавить цвет',
+    colorNamePlaceholder: 'Например: Белый',
+    sizesLabel: 'Размеры',
+    addSize: 'Добавить размер',
+    sizePlaceholder: 'Например: M',
+    buyNow: 'Купить',
+    acceptOrder: 'Принять',
+    startDelivery: 'Отправить в доставку',
+    markAtWarehouse: 'Поступил на склад',
+    markShipped: 'Отправлен на почту',
+    colorLabel: 'Цвет',
+    sizeLabel: 'Размер',
+    viewFullscreenLabel: 'Открыть на весь экран',
+    chooseColorFirst: 'Сначала выберите цвет',
+    chooseSizeFirst: 'Сначала выберите размер',
   },
 };
 

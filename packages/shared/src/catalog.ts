@@ -10,6 +10,12 @@ export const category = z.object({
 });
 export type Category = z.infer<typeof category>;
 
+export const productColor = z.object({
+  name: z.string().min(1).max(64),
+  imageUrl: z.url().max(2_000_000).nullable(),
+});
+export type ProductColor = z.infer<typeof productColor>;
+
 export const product = z.object({
   id,
   shopId: id,
@@ -21,6 +27,12 @@ export const product = z.object({
   price: moneyAmount,
   currency: currencyCode,
   imageUrl: z.url().max(2_000_000).nullable(),
+  /** Extra gallery images, shown alongside the cover `imageUrl`. */
+  images: z.array(z.url().max(2_000_000)).max(10).default([]),
+  /** Selectable colors; empty means color isn't a choice for this product. */
+  colors: z.array(productColor).max(20).default([]),
+  /** Selectable sizes; empty means size isn't a choice for this product. */
+  sizes: z.array(z.string().min(1).max(32)).max(20).default([]),
   /** `null` means the product is not stock-tracked (always available). */
   stock: z.number().int().nonnegative().nullable(),
   isActive: z.boolean(),
