@@ -5,6 +5,7 @@ import { buildOrderDraft, type DraftLine } from './orders.js';
 const line = (over: Partial<DraftLine> = {}): DraftLine => ({
   productId: 'p1',
   title: 'Tea',
+  imageUrl: null,
   unitPrice: 50,
   quantity: 2,
   stock: null,

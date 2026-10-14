@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Cell, List, Placeholder, Section, Text } from '@telegram-apps/telegram-ui';
+import { Placeholder } from '@telegram-apps/telegram-ui';
 import { api, ApiClientError } from '../api/client.js';
 import { useAsync } from '../hooks/useAsync.js';
 import { formatPrice } from '../lib/format.js';
@@ -8,6 +8,31 @@ import { fileToCompressedDataUrl } from '../lib/image.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
 import { useLang } from '../i18n/LanguageProvider.js';
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+}): React.JSX.Element {
+  return (
+    <div
+      className="surface-row"
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}
+    >
+      <div className="chip-btn" style={{ width: 36, height: 36, fontSize: 16 }}>
+        {icon}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: 12, color: 'var(--tgui--hint_color)' }}>{label}</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{value}</span>
+      </div>
+    </div>
+  );
+}
 
 export function PaymentPage(): React.JSX.Element {
   const { id = '' } = useParams();
@@ -45,52 +70,64 @@ export function PaymentPage(): React.JSX.Element {
   if (orderError || !order) return <ErrorView message={orderError ?? t('productNotFound')} />;
 
   return (
-    <List>
-      <Section header={t('payHeader')}>
-        <Cell after={formatPrice(order.total, order.currency)}>{t('amountToPay')}</Cell>
-        {shop?.cardNumber ? (
-          <>
-            <Cell subtitle={t('cardNumberLabel')} multiline>
-              {shop.cardNumber}
-            </Cell>
+    <div style={{ padding: '20px 16px 32px' }}>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{t('payHeader')}</div>
+
+      <div className="card-surface" style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: 'var(--tgui--hint_color)', fontSize: 14 }}>{t('amountToPay')}</span>
+          <span style={{ fontWeight: 800, fontSize: 18, color: 'var(--brand)' }}>
+            {formatPrice(order.total, order.currency)}
+          </span>
+        </div>
+      </div>
+
+      {shop?.cardNumber ? (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <InfoRow icon="💳" label={t('cardNumberLabel')} value={shop.cardNumber} />
             {shop.cardHolder && (
-              <Cell subtitle={t('cardHolderLabel')} multiline>
-                {shop.cardHolder}
-              </Cell>
+              <InfoRow icon="👤" label={t('cardHolderLabel')} value={shop.cardHolder} />
             )}
-            {shop.paymentInstructions && (
-              <div style={{ padding: '8px 16px' }}>
-                <Text style={{ color: 'var(--tgui--hint_color)' }}>{shop.paymentInstructions}</Text>
+          </div>
+          {shop.paymentInstructions && (
+            <p style={{ color: 'var(--tgui--hint_color)', fontSize: 13, marginTop: 12 }}>
+              {shop.paymentInstructions}
+            </p>
+          )}
+
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>{t('uploadReceiptLabel')}</div>
+            {error && (
+              <div style={{ color: 'var(--tgui--destructive_text_color)', marginBottom: 10 }}>
+                {error}
               </div>
             )}
-          </>
-        ) : (
-          <Placeholder description={t('noCardConfigured')}>
-            <span style={{ fontSize: 40 }}>💳</span>
-          </Placeholder>
-        )}
-      </Section>
-
-      {shop?.cardNumber && (
-        <Section header={t('uploadReceiptLabel')}>
-          {error && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{error}</Cell>}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void onFileChosen(file);
-            }}
-          />
-          <div style={{ padding: 16 }}>
-            <Button stretched loading={busy} onClick={() => fileInputRef.current?.click()}>
-              {t('chooseFile')}
-            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void onFileChosen(file);
+              }}
+            />
+            <button
+              type="button"
+              className="pill-btn press-anim"
+              disabled={busy}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {busy ? '…' : t('chooseFile')}
+            </button>
           </div>
-        </Section>
+        </>
+      ) : (
+        <Placeholder description={t('noCardConfigured')}>
+          <span style={{ fontSize: 40 }}>💳</span>
+        </Placeholder>
       )}
-    </List>
+    </div>
   );
 }

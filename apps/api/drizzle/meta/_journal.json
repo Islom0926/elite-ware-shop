@@ -43,6 +43,13 @@
       "when": 1792000672123,
       "tag": "0005_add_address_promo_discount",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792002922284,
+      "tag": "0006_add_order_item_image",
+      "breakpoints": true
     }
   ]
 }

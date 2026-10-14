@@ -1,39 +1,42 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Product } from '@tma-shop/shared';
 import { formatPrice } from '../lib/format.js';
 import { useLang } from '../i18n/LanguageProvider.js';
+import { useCart } from '../providers/CartProvider.js';
+import { isFavorite, toggleFavorite } from '../lib/favorites.js';
 
 export function ProductCard({ product }: { product: Product }): React.JSX.Element {
   const navigate = useNavigate();
   const { t } = useLang();
+  const { add } = useCart();
+  const [favorite, setFavorite] = useState(() => isFavorite(product.id));
+  const [adding, setAdding] = useState(false);
   const outOfStock = product.stock !== null && product.stock <= 0;
 
+  const onAdd = async (e: React.MouseEvent): Promise<void> => {
+    e.stopPropagation();
+    if (outOfStock || adding) return;
+    setAdding(true);
+    try {
+      await add(product.id, 1);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      className="press-anim"
+    <div
+      className="card-surface press-anim"
       onClick={() => navigate(`/product/${product.id}`)}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        textAlign: 'left',
-        border: 'none',
-        borderRadius: 14,
-        background: 'var(--tgui--section_bg_color)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-        overflow: 'hidden',
-        cursor: 'pointer',
-        padding: 0,
-        font: 'inherit',
-        color: 'inherit',
-      }}
+      style={{ overflow: 'hidden', cursor: 'pointer' }}
     >
       <div
         style={{
           position: 'relative',
           width: '100%',
           aspectRatio: '1 / 1',
-          background: 'var(--tgui--secondary_bg_color)',
+          background: 'var(--chip-bg)',
         }}
       >
         {product.imageUrl ? (
@@ -56,6 +59,38 @@ export function ProductCard({ product }: { product: Product }): React.JSX.Elemen
             🛍️
           </div>
         )}
+        <button
+          type="button"
+          className="press-anim"
+          onClick={(e) => {
+            e.stopPropagation();
+            setFavorite(toggleFavorite(product.id));
+          }}
+          aria-label={t('favoriteLabel')}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 30,
+            height: 30,
+            borderRadius: '50%',
+            border: 'none',
+            background: 'rgba(255,255,255,0.92)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 21s-7.5-4.6-10-9.1C.6 8.6 2 5 5.4 4.2 8 3.6 10.3 5 12 7.3 13.7 5 16 3.6 18.6 4.2 22 5 23.4 8.6 22 11.9 19.5 16.4 12 21 12 21z"
+              fill={favorite ? '#ff5a6a' : 'none'}
+              stroke={favorite ? '#ff5a6a' : '#16171b'}
+              strokeWidth="1.8"
+            />
+          </svg>
+        </button>
         {outOfStock && (
           <span
             style={{
@@ -86,10 +121,23 @@ export function ProductCard({ product }: { product: Product }): React.JSX.Elemen
         >
           {product.title}
         </span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--tgui--accent_text_color)' }}>
-          {formatPrice(product.price, product.currency)}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand)' }}>
+            {formatPrice(product.price, product.currency)}
+          </span>
+          {!outOfStock && (
+            <button
+              type="button"
+              className="chip-btn brand press-anim"
+              onClick={(e) => void onAdd(e)}
+              aria-label={t('addToCart')}
+              style={{ width: 28, height: 28, fontSize: 16, fontWeight: 700 }}
+            >
+              {adding ? '…' : '+'}
+            </button>
+          )}
+        </div>
       </div>
-    </button>
+    </div>
   );
 }

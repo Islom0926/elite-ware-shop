@@ -11,6 +11,7 @@ type OrderItemRow = typeof orderItems.$inferSelect;
 export interface DraftLine {
   productId: string;
   title: string;
+  imageUrl: string | null;
   unitPrice: number;
   quantity: number;
   /** `null` when not stock-tracked. */
@@ -21,6 +22,7 @@ export interface OrderDraft {
   items: Array<{
     productId: string;
     title: string;
+    imageUrl: string | null;
     unitPrice: number;
     quantity: number;
     subtotal: number;
@@ -47,6 +49,7 @@ export function buildOrderDraft(lines: DraftLine[]): OrderDraft {
     return {
       productId: line.productId,
       title: line.title,
+      imageUrl: line.imageUrl,
       unitPrice: line.unitPrice,
       quantity: line.quantity,
       subtotal: line.unitPrice * line.quantity,
@@ -77,6 +80,7 @@ async function loadCartDraft(
       .map((l) => ({
         productId: l.product.id,
         title: l.product.title,
+        imageUrl: l.product.imageUrl,
         unitPrice: l.product.price,
         quantity: l.item.quantity,
         stock: l.product.stock,

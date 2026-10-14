@@ -1,14 +1,62 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Cell, List, Section, Textarea } from '@telegram-apps/telegram-ui';
+import { Button, Textarea } from '@telegram-apps/telegram-ui';
 import { api, ApiClientError } from '../api/client.js';
 import { useAsync } from '../hooks/useAsync.js';
 import { useSession } from '../providers/SessionProvider.js';
 import { formatPrice } from '../lib/format.js';
 import { Loader } from '../components/Loader.js';
-import { ErrorView } from '../components/ErrorView.js';
 import { useLang } from '../i18n/LanguageProvider.js';
 import { LANGS } from '../i18n/translations.js';
+
+function RowIcon({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <div
+      className="chip-btn"
+      style={{ width: 36, height: 36, fontSize: 16, color: 'var(--tgui--text_color)' }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ListRow({
+  icon,
+  label,
+  value,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: string | undefined;
+  onClick?: (() => void) | undefined;
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      className="surface-row press-anim"
+      onClick={onClick}
+      disabled={!onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        border: 'none',
+        padding: '12px 14px',
+        cursor: onClick ? 'pointer' : 'default',
+        font: 'inherit',
+        color: 'inherit',
+        textAlign: 'left',
+      }}
+    >
+      <RowIcon>{icon}</RowIcon>
+      <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{label}</span>
+      {value && <span style={{ fontSize: 13, color: 'var(--tgui--hint_color)' }}>{value}</span>}
+      {onClick && <span style={{ color: 'var(--tgui--hint_color)', fontSize: 16 }}>›</span>}
+    </button>
+  );
+}
 
 export function ProfilePage(): React.JSX.Element {
   const { user, isAdmin } = useSession();
@@ -21,6 +69,7 @@ export function ProfilePage(): React.JSX.Element {
   const [reloadKey, setReloadKey] = useState(0);
   const profile = useAsync(() => api.getProfile(), [reloadKey]);
 
+  const [addressOpen, setAddressOpen] = useState(false);
   const [address, setAddress] = useState('');
   const [addressInitialized, setAddressInitialized] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
@@ -54,127 +103,137 @@ export function ProfilePage(): React.JSX.Element {
     orders.data?.filter((o) => o.status === 'paid' || o.status === 'fulfilled').length ?? 0;
 
   return (
-    <List>
+    <div style={{ padding: '24px 16px' }}>
       <div
-        className="glass pop-in"
-        style={{
-          margin: '20px 16px 0',
-          borderRadius: 20,
-          padding: 20,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}
+        className="pop-in"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}
       >
         {user.photoUrl ? (
           <img
             src={user.photoUrl}
             alt=""
-            style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
+            style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover' }}
           />
         ) : (
           <div
+            className="chip-btn"
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              background: 'var(--tgui--secondary_bg_color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 24,
-              fontWeight: 700,
+              width: 84,
+              height: 84,
+              fontSize: 30,
+              fontWeight: 800,
             }}
           >
             {user.firstName.charAt(0).toUpperCase()}
           </div>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 17, fontWeight: 700 }}>
-            {[user.firstName, user.lastName].filter(Boolean).join(' ')}
-          </span>
-          {user.username && (
-            <span style={{ fontSize: 13, color: 'var(--tgui--hint_color)' }}>@{user.username}</span>
-          )}
-          <span style={{ fontSize: 12, color: 'var(--tgui--hint_color)' }}>
-            ID: {user.telegramId}
-          </span>
+        <div style={{ fontSize: 19, fontWeight: 800 }}>
+          {[user.firstName, user.lastName].filter(Boolean).join(' ')}
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--tgui--hint_color)' }}>
+          {user.username ? `@${user.username}` : `ID: ${user.telegramId}`}
         </div>
       </div>
 
-      <div className="fade-up" style={{ display: 'flex', gap: 10, margin: '12px 16px 0' }}>
-        <div className="glass" style={{ flex: 1, borderRadius: 16, padding: '12px 14px' }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>
+      <div className="fade-up" style={{ display: 'flex', gap: 10, marginTop: 22 }}>
+        <div
+          className="card-surface"
+          style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--brand)' }}>
             {rank.data?.rank ? `#${rank.data.rank}` : '—'}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)' }}>{t('topRankLabel')}</div>
+          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)', marginTop: 2 }}>
+            {t('topRankLabel')}
+          </div>
         </div>
-        <div className="glass" style={{ flex: 1, borderRadius: 16, padding: '12px 14px' }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{doneCount}</div>
-          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)' }}>
+        <div
+          className="card-surface"
+          style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{doneCount}</div>
+          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)', marginTop: 2 }}>
             {t('completedOrdersLabel')}
           </div>
         </div>
-        <div className="glass" style={{ flex: 1, borderRadius: 16, padding: '12px 14px' }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{pendingCount}</div>
-          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)' }}>
+        <div
+          className="card-surface"
+          style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{pendingCount}</div>
+          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)', marginTop: 2 }}>
             {t('pendingOrdersLabel')}
           </div>
         </div>
       </div>
 
-      {rank.data && rank.data.totalSpent > 0 && shop.data && (
-        <Section>
-          <Cell after={formatPrice(rank.data.totalSpent, shop.data.currency)}>
-            {t('totalSpentLabel')}
-          </Cell>
-        </Section>
-      )}
-
-      <Section header={t('myOrdersHeader')}>
-        {orders.loading && <Loader />}
-        {orders.error && <ErrorView message={orders.error} />}
-        <Cell onClick={() => navigate('/orders')} after="›">
-          {t('viewAllOrders')}
-        </Cell>
-      </Section>
-
-      <Section header={t('addressHeader')}>
-        <Textarea
-          placeholder={t('addressPlaceholder')}
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
+        <ListRow icon="📦" label={t('viewAllOrders')} onClick={() => navigate('/orders')} />
+        {rank.data && rank.data.totalSpent > 0 && shop.data && (
+          <ListRow
+            icon="💰"
+            label={t('totalSpentLabel')}
+            value={formatPrice(rank.data.totalSpent, shop.data.currency)}
+          />
+        )}
+        <ListRow
+          icon="📍"
+          label={t('addressHeader')}
+          value={address || undefined}
+          onClick={() => setAddressOpen((v) => !v)}
         />
-        <div style={{ padding: 16 }}>
-          <Button stretched loading={savingAddress} onClick={() => void saveAddress()}>
-            {t('saveAddress')}
-          </Button>
-          {addressMessage && <Cell>{addressMessage}</Cell>}
-        </div>
-      </Section>
+        {addressOpen && (
+          <div className="card-surface" style={{ padding: 14 }}>
+            <Textarea
+              placeholder={t('addressPlaceholder')}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+            <div style={{ marginTop: 12 }}>
+              <Button stretched loading={savingAddress} onClick={() => void saveAddress()}>
+                {t('saveAddress')}
+              </Button>
+              {addressMessage && (
+                <div style={{ marginTop: 8, fontSize: 13, textAlign: 'center' }}>
+                  {addressMessage}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-      <Section header={t('languageHeader')}>
-        <div style={{ display: 'flex', gap: 8, padding: '8px 16px', flexWrap: 'wrap' }}>
-          {LANGS.map(({ code, label }) => (
-            <Button
-              key={code}
-              size="s"
-              mode={lang === code ? 'filled' : 'bezeled'}
-              onClick={() => setLang(code)}
-            >
-              {label}
-            </Button>
-          ))}
+        <div className="card-surface" style={{ padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <RowIcon>🌐</RowIcon>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{t('languageHeader')}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {LANGS.map(({ code, label }) => (
+              <button
+                key={code}
+                type="button"
+                className="press-anim"
+                onClick={() => setLang(code)}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  borderRadius: 'var(--pill-radius)',
+                  padding: '8px 0',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: lang === code ? 'var(--brand)' : 'var(--chip-bg)',
+                  color: lang === code ? '#fff' : 'var(--tgui--hint_color)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-      </Section>
 
-      {isAdmin && (
-        <Section>
-          <Cell onClick={() => navigate('/admin')} after="›">
-            {t('admin')}
-          </Cell>
-        </Section>
-      )}
-    </List>
+        {isAdmin && <ListRow icon="🛠️" label={t('admin')} onClick={() => navigate('/admin')} />}
+      </div>
+    </div>
   );
 }

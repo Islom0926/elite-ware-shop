@@ -41,7 +41,7 @@ function Shell(): React.JSX.Element {
 
   return (
     <>
-      <div style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' }}>
+      <div style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<CatalogPage />} />
           <Route path="/search" element={<SearchPage />} />

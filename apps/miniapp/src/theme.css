@@ -6,34 +6,49 @@
 */
 :root {
   --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #11182a;
-  --tg-theme-hint-color: #6b7280;
-  --tg-theme-link-color: #1d3461;
-  --tg-theme-button-color: #1d3461;
+  --tg-theme-text-color: #16171b;
+  --tg-theme-hint-color: #9a9aa5;
+  --tg-theme-link-color: #6c5ce7;
+  --tg-theme-button-color: #6c5ce7;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f5f6f8;
+  --tg-theme-secondary-bg-color: #f3f3f7;
   --tg-theme-header-bg-color: #ffffff;
-  --tg-theme-accent-text-color: #1d3461;
+  --tg-theme-accent-text-color: #6c5ce7;
   --tg-theme-section-bg-color: #ffffff;
-  --tg-theme-section-header-text-color: #6b7280;
-  --tg-theme-subtitle-text-color: #6b7280;
-  --tg-theme-destructive-text-color: #e5484d;
+  --tg-theme-section-header-text-color: #16171b;
+  --tg-theme-subtitle-text-color: #9a9aa5;
+  --tg-theme-destructive-text-color: #ff6666;
+
+  /* Brand tokens for custom (non-Telegram-UI) components. */
+  --brand: #6c5ce7;
+  --brand-dark: #5848c7;
+  --brand-tint: #eeecfc;
+  --chip-bg: #f3f3f7;
+  --card-radius: 20px;
+  --pill-radius: 999px;
 }
 
 [data-theme='dark'] {
-  --tg-theme-bg-color: #0f1115;
-  --tg-theme-text-color: #f1f3f6;
-  --tg-theme-hint-color: #9aa3b2;
-  --tg-theme-link-color: #7fa6e0;
-  --tg-theme-button-color: #2d4a7c;
+  --tg-theme-bg-color: #121214;
+  --tg-theme-text-color: #f3f3f7;
+  --tg-theme-hint-color: #8e8e99;
+  --tg-theme-link-color: #8f7bf0;
+  --tg-theme-button-color: #6c5ce7;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #171a21;
-  --tg-theme-header-bg-color: #0f1115;
-  --tg-theme-accent-text-color: #7fa6e0;
-  --tg-theme-section-bg-color: #171a21;
-  --tg-theme-section-header-text-color: #9aa3b2;
-  --tg-theme-subtitle-text-color: #9aa3b2;
-  --tg-theme-destructive-text-color: #ff6b6b;
+  --tg-theme-secondary-bg-color: #1c1c21;
+  --tg-theme-header-bg-color: #121214;
+  --tg-theme-accent-text-color: #8f7bf0;
+  --tg-theme-section-bg-color: #1a1a1f;
+  --tg-theme-section-header-text-color: #f3f3f7;
+  --tg-theme-subtitle-text-color: #8e8e99;
+  --tg-theme-destructive-text-color: #ff7a7a;
+
+  --brand: #8f7bf0;
+  --brand-dark: #6c5ce7;
+  --brand-tint: rgba(140, 123, 240, 0.16);
+  --chip-bg: #1f1f26;
+  --card-radius: 20px;
+  --pill-radius: 999px;
 }
 
 /* "Liquid glass" surfaces: translucent, blurred panels over the white/dark base. */
@@ -59,6 +74,55 @@
 
 body {
   margin: 0;
+}
+
+/* Reference-UI kit primitives: circular icon chips, pill buttons, flat cards. */
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--chip-bg);
+  color: var(--tgui--text_color);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.chip-btn.brand {
+  background: var(--brand);
+  color: #fff;
+}
+
+.pill-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: none;
+  border-radius: var(--pill-radius);
+  background: var(--brand);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 16px;
+  cursor: pointer;
+}
+.pill-btn:disabled {
+  opacity: 0.5;
+}
+
+.card-surface {
+  background: var(--tgui--section_bg_color);
+  border-radius: var(--card-radius);
+  box-shadow: 0 2px 10px rgba(16, 17, 23, 0.06);
+}
+
+.surface-row {
+  background: var(--chip-bg);
+  border-radius: 16px;
 }
 
 /* Subtle, consistent motion for interactive/animated icons across the app. */

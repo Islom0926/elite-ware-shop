@@ -135,6 +135,13 @@ export interface Dictionary {
   categoryDeleteFailed: string;
   productCountLabel: string;
   inactiveLabel: string;
+  greetingLabel: string;
+  favoriteLabel: string;
+  searchResultsFor: string;
+  resultsFoundLabel: string;
+  ordersTabActive: string;
+  ordersTabCompleted: string;
+  ordersTabCancelled: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -269,6 +276,13 @@ export const dictionaries: Record<Lang, Dictionary> = {
     categoryDeleteFailed: "O'chirishda xatolik",
     productCountLabel: 'mahsulot',
     inactiveLabel: 'Nofaol',
+    greetingLabel: 'Salom!',
+    favoriteLabel: 'Sevimlilarga qo‘shish',
+    searchResultsFor: 'Natijalar:',
+    resultsFoundLabel: '{{count}} ta natija',
+    ordersTabActive: 'Faol',
+    ordersTabCompleted: 'Bajarilgan',
+    ordersTabCancelled: 'Bekor qilingan',
   },
   ru: {
     cart: '🛒 Корзина',
@@ -401,6 +415,13 @@ export const dictionaries: Record<Lang, Dictionary> = {
     categoryDeleteFailed: 'Ошибка удаления',
     productCountLabel: 'товаров',
     inactiveLabel: 'Неактивен',
+    greetingLabel: 'Привет!',
+    favoriteLabel: 'Добавить в избранное',
+    searchResultsFor: 'Результаты:',
+    resultsFoundLabel: 'Найдено: {{count}}',
+    ordersTabActive: 'Активные',
+    ordersTabCompleted: 'Завершённые',
+    ordersTabCancelled: 'Отменённые',
   },
 };
 

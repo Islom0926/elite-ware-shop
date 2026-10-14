@@ -125,6 +125,7 @@ export function toOrderItemDTO(row: OrderItemRow): OrderItem {
   return {
     productId: row.productId,
     title: row.title,
+    imageUrl: row.imageUrl,
     unitPrice: row.unitPrice,
     quantity: row.quantity,
     subtotal: row.subtotal,

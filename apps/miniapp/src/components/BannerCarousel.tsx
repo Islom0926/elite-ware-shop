@@ -34,7 +34,7 @@ export function BannerCarousel({ banners }: { banners: Banner[] }): React.JSX.El
   if (banners.length === 0) return null;
 
   return (
-    <div style={{ padding: '8px 0' }}>
+    <div style={{ padding: '16px 16px 0' }}>
       <div
         ref={trackRef}
         onScroll={onScroll}
@@ -43,6 +43,7 @@ export function BannerCarousel({ banners }: { banners: Banner[] }): React.JSX.El
           overflowX: 'auto',
           scrollSnapType: 'x mandatory',
           scrollbarWidth: 'none',
+          borderRadius: 'var(--card-radius)',
         }}
       >
         {banners.map((banner) => (
@@ -57,8 +58,8 @@ export function BannerCarousel({ banners }: { banners: Banner[] }): React.JSX.El
               padding: 0,
               margin: 0,
               cursor: banner.productId ? 'pointer' : 'default',
-              aspectRatio: '16 / 7',
-              background: 'var(--tgui--secondary_bg_color)',
+              aspectRatio: '16 / 8',
+              background: 'var(--chip-bg)',
             }}
           >
             <img
@@ -70,17 +71,16 @@ export function BannerCarousel({ banners }: { banners: Banner[] }): React.JSX.El
         ))}
       </div>
       {banners.length > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
           {banners.map((banner, index) => (
             <span
               key={banner.id}
               style={{
-                width: 6,
+                width: index === active ? 18 : 6,
                 height: 6,
-                borderRadius: '50%',
-                background:
-                  index === active ? 'var(--tgui--accent_text_color)' : 'var(--tgui--hint_color)',
-                opacity: index === active ? 1 : 0.4,
+                borderRadius: 999,
+                background: index === active ? 'var(--brand)' : 'var(--chip-bg)',
+                transition: 'width 0.25s ease',
               }}
             />
           ))}
