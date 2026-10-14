@@ -11,10 +11,6 @@ export const shop = z.object({
   name: z.string().min(1).max(128),
   description: z.string().max(1024),
   currency: currencyCode,
-  /** Telegram bot username that hosts the Mini App, without the leading `@`. */
-  botUsername: z.string().max(64).nullable(),
-  /** Whether checkout is paid with Telegram Stars. */
-  starsEnabled: z.boolean(),
   /** Bank card number customers transfer manual payments to. */
   cardNumber: z.string().max(64).nullable(),
   /** Name on the bank card, shown to customers alongside the number. */
@@ -30,8 +26,6 @@ export const shopConfig = shop.pick({
   name: true,
   description: true,
   currency: true,
-  botUsername: true,
-  starsEnabled: true,
   cardNumber: true,
   cardHolder: true,
   paymentInstructions: true,

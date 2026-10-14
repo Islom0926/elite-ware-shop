@@ -5,6 +5,7 @@ import type {
   Product,
   SessionUser,
   ShopConfig,
+  User,
 } from '@tma-shop/shared';
 import type { categories, orderItems, orders, products, shops, users } from './schema.js';
 
@@ -48,8 +49,6 @@ export function toShopConfigDTO(row: ShopRow): ShopConfig {
     name: row.name,
     description: row.description,
     currency: row.currency,
-    botUsername: row.botUsername,
-    starsEnabled: row.starsEnabled,
     cardNumber: row.cardNumber,
     cardHolder: row.cardHolder,
     paymentInstructions: row.paymentInstructions,
@@ -66,6 +65,20 @@ export function toSessionUserDTO(row: UserRow): SessionUser {
     isPremium: row.isPremium,
     photoUrl: row.photoUrl,
     role: row.role,
+  };
+}
+
+export function toUserDTO(row: UserRow): User {
+  return {
+    telegramId: row.telegramId,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    username: row.username,
+    languageCode: row.languageCode,
+    isPremium: row.isPremium,
+    photoUrl: row.photoUrl,
+    role: row.role,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -88,7 +101,7 @@ export function toOrderDTO(row: OrderRow, items: OrderItemRow[]): Order {
     items: items.map(toOrderItemDTO),
     total: row.total,
     currency: row.currency,
-    paymentChargeId: row.paymentChargeId,
+    confirmedBy: row.confirmedBy,
     receiptImage: row.receiptImage,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

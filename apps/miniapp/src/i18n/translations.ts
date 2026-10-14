@@ -78,6 +78,15 @@ export interface Dictionary {
   saveSettingsFailed: string;
   confirmPayment: string;
   receiptLabel: string;
+  adminsHeader: string;
+  roleAdmin: string;
+  promote: string;
+  demote: string;
+  addAdminByIdLabel: string;
+  telegramIdPlaceholder: string;
+  addAdmin: string;
+  invalidTelegramId: string;
+  roleChangeFailed: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -95,10 +104,10 @@ export const dictionaries: Record<Lang, Dictionary> = {
     inStock: 'Mavjud',
     leftStock: '{{count}} dona qoldi',
     somethingWentWrong: 'Xatolik yuz berdi',
-    pleaseReopen: "Ilovani qaytadan oching",
+    pleaseReopen: 'Ilovani qaytadan oching',
     couldNotSignIn: 'Kirish amalga oshmadi',
-    openInTelegram: "Telegram orqali oching",
-    openInTelegramDesc: "Bu Mini App faqat Telegram ilovasi ichida ishlaydi.",
+    openInTelegram: 'Telegram orqali oching',
+    openInTelegramDesc: 'Bu Mini App faqat Telegram ilovasi ichida ishlaydi.',
     cartEmptyHeader: 'Savatingiz boʻsh',
     cartEmptyDesc: "Katalogdan mahsulot qo'shing",
     total: 'Jami',
@@ -121,7 +130,7 @@ export const dictionaries: Record<Lang, Dictionary> = {
     slugLabel: 'Slug (kebab-case)',
     priceLabel: 'Narxi ({{currency}})',
     descriptionLabel: 'Tavsif',
-    createProduct: "Mahsulot yaratish",
+    createProduct: 'Mahsulot yaratish',
     createdProduct: '"{{title}}" yaratildi',
     failedToCreateProduct: 'Mahsulot yaratishda xatolik',
     checkoutFailed: "To'lov amalga oshmadi",
@@ -154,6 +163,16 @@ export const dictionaries: Record<Lang, Dictionary> = {
     saveSettingsFailed: 'Saqlashda xatolik',
     confirmPayment: "To'lovni tasdiqlash",
     receiptLabel: 'Chek',
+    adminsHeader: 'Adminlar',
+    roleAdmin: 'Admin',
+    promote: 'Admin qilish',
+    demote: 'Adminlikdan olish',
+    addAdminByIdLabel:
+      "Telegram ID orqali admin qo'shish (foydalanuvchi botni kamida bir marta ochgan bo'lishi kerak)",
+    telegramIdPlaceholder: 'Masalan: 123456789',
+    addAdmin: "Qo'shish",
+    invalidTelegramId: "Telegram ID noto'g'ri",
+    roleChangeFailed: 'Amal bajarilmadi',
   },
   ru: {
     cart: '🛒 Корзина',
@@ -228,6 +247,16 @@ export const dictionaries: Record<Lang, Dictionary> = {
     saveSettingsFailed: 'Ошибка сохранения',
     confirmPayment: 'Подтвердить оплату',
     receiptLabel: 'Чек',
+    adminsHeader: 'Администраторы',
+    roleAdmin: 'Админ',
+    promote: 'Сделать админом',
+    demote: 'Убрать права админа',
+    addAdminByIdLabel:
+      'Добавить админа по Telegram ID (пользователь должен хотя бы раз открыть бота)',
+    telegramIdPlaceholder: 'Например: 123456789',
+    addAdmin: 'Добавить',
+    invalidTelegramId: 'Неверный Telegram ID',
+    roleChangeFailed: 'Не удалось выполнить действие',
   },
 };
 

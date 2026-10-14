@@ -14,7 +14,6 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
-      '/webhook': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
   preview: {
@@ -23,7 +22,6 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
-      '/webhook': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
   build: {

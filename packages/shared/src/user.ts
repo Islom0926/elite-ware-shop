@@ -32,3 +32,8 @@ export const sessionUser = user.pick({
   role: true,
 });
 export type SessionUser = z.infer<typeof sessionUser>;
+
+export const setUserRoleRequest = z.object({
+  role: userRole,
+});
+export type SetUserRoleRequest = z.infer<typeof setUserRoleRequest>;

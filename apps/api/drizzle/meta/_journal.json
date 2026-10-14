@@ -15,6 +15,20 @@
       "when": 1791996002482,
       "tag": "0001_polite_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791999099219,
+      "tag": "0002_add_confirmed_by",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791999110365,
+      "tag": "0003_drop_stars_and_charge_id",
+      "breakpoints": true
     }
   ]
 }

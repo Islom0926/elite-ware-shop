@@ -158,13 +158,13 @@ export async function setOrderStatus(
 }
 
 /**
- * Marks an order paid and decrements tracked stock, idempotently: a repeated
- * webhook for the same order is a no-op. Returns the up-to-date order.
+ * Marks an order paid and decrements tracked stock, idempotently: confirming
+ * an already-paid order is a no-op. Returns the up-to-date order.
  */
 export async function markOrderPaid(
   db: Database,
   orderId: string,
-  paymentChargeId: string,
+  confirmedBy: number,
 ): Promise<Order> {
   return db.transaction(async (tx) => {
     const order = await tx.query.orders.findFirst({ where: eq(orders.id, orderId) });
@@ -177,7 +177,7 @@ export async function markOrderPaid(
 
     const [updated] = await tx
       .update(orders)
-      .set({ status: 'paid', paymentChargeId, updatedAt: new Date() })
+      .set({ status: 'paid', confirmedBy, updatedAt: new Date() })
       .where(eq(orders.id, order.id))
       .returning();
     if (!updated) throw new Error('Failed to update order');
@@ -227,12 +227,13 @@ export async function confirmOrderPaidManually(
   db: Database,
   shopId: string,
   orderId: string,
+  adminTelegramId: number,
 ): Promise<Order> {
   const order = await db.query.orders.findFirst({
     where: and(eq(orders.shopId, shopId), eq(orders.id, orderId)),
   });
   if (!order) throw ApiError.notFound('Order not found');
-  return markOrderPaid(db, orderId, 'manual');
+  return markOrderPaid(db, orderId, adminTelegramId);
 }
 
 async function attachItems(db: Database, rows: (typeof orders.$inferSelect)[]): Promise<Order[]> {

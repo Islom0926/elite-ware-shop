@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui';
+import { Badge, Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui';
 import type { OrderStatus, ProductInput, ShopConfig } from '@tma-shop/shared';
 import { api, ApiClientError } from '../api/client.js';
 import { useAsync } from '../hooks/useAsync.js';
@@ -19,7 +19,7 @@ const STATUS_LABEL_KEY: Record<OrderStatus, keyof Dictionary> = {
 };
 
 export function AdminPage(): React.JSX.Element {
-  const { isAdmin } = useSession();
+  const { isAdmin, user } = useSession();
   const { t } = useLang();
   const [reloadKey, setReloadKey] = useState(0);
   const reload = (): void => setReloadKey((k) => k + 1);
@@ -63,11 +63,7 @@ export function AdminPage(): React.JSX.Element {
             after={
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {order.status === 'awaiting_payment' && (
-                  <Button
-                    size="s"
-                    mode="filled"
-                    onClick={() => void setStatus(order.id, 'paid')}
-                  >
+                  <Button size="s" mode="filled" onClick={() => void setStatus(order.id, 'paid')}>
                     {t('confirmPayment')}
                   </Button>
                 )}
@@ -97,7 +93,98 @@ export function AdminPage(): React.JSX.Element {
           </Cell>
         ))}
       </Section>
+
+      <AdminsManager selfTelegramId={user?.telegramId ?? null} />
     </List>
+  );
+}
+
+function AdminsManager({ selfTelegramId }: { selfTelegramId: number | null }): React.JSX.Element {
+  const { t } = useLang();
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const users = useAsync(() => api.adminListUsers(), [reloadKey]);
+  const [promoteId, setPromoteId] = useState('');
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const changeRole = async (telegramId: number, role: 'admin' | 'customer'): Promise<void> => {
+    setBusyId(telegramId);
+    setMessage(null);
+    try {
+      await api.adminSetUserRole(telegramId, role);
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('roleChangeFailed'));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const promote = async (): Promise<void> => {
+    const telegramId = Number(promoteId.trim());
+    if (!Number.isInteger(telegramId) || telegramId <= 0) {
+      setMessage(t('invalidTelegramId'));
+      return;
+    }
+    await changeRole(telegramId, 'admin');
+    setPromoteId('');
+  };
+
+  return (
+    <Section header={t('adminsHeader')}>
+      {users.loading && <Loader />}
+      {users.error && <ErrorView message={users.error} />}
+      {message && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{message}</Cell>}
+      {users.data?.map((u) => (
+        <Cell
+          key={u.telegramId}
+          subtitle={u.username ? `@${u.username} · ${u.telegramId}` : String(u.telegramId)}
+          after={
+            u.role === 'admin' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Badge type="number" mode="primary">
+                  {t('roleAdmin')}
+                </Badge>
+                {u.telegramId !== selfTelegramId && (
+                  <Button
+                    size="s"
+                    mode="plain"
+                    loading={busyId === u.telegramId}
+                    onClick={() => void changeRole(u.telegramId, 'customer')}
+                  >
+                    {t('demote')}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button
+                size="s"
+                mode="bezeled"
+                loading={busyId === u.telegramId}
+                onClick={() => void changeRole(u.telegramId, 'admin')}
+              >
+                {t('promote')}
+              </Button>
+            )
+          }
+        >
+          {[u.firstName, u.lastName].filter(Boolean).join(' ')}
+        </Cell>
+      ))}
+
+      <Input
+        header={t('addAdminByIdLabel')}
+        placeholder={t('telegramIdPlaceholder')}
+        value={promoteId}
+        onChange={(e) => setPromoteId(e.target.value.replace(/\D/g, ''))}
+      />
+      <div style={{ padding: 16 }}>
+        <Button stretched disabled={!promoteId} onClick={() => void promote()}>
+          {t('addAdmin')}
+        </Button>
+      </div>
+    </Section>
   );
 }
 

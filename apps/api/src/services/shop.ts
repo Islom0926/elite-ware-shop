@@ -23,7 +23,6 @@ export async function resolveActiveShopId(db: Database, env: Env): Promise<strin
       name: 'Elite Ware Shop',
       description: 'Elite Ware Shop — clothes store.',
       currency: 'UZS',
-      starsEnabled: false,
     })
     .returning();
   if (!created) throw new ApiError(503, 'no_shop', 'Failed to bootstrap a default shop');

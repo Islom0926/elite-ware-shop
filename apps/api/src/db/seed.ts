@@ -19,10 +19,11 @@ async function main(): Promise<void> {
     .insert(shops)
     .values({
       name: 'Demo Tea Shop',
-      description: 'A universal tma-shop demo storefront. Pay with Telegram Stars ⭐.',
+      description: 'A universal tma-shop demo storefront. Pay by card.',
       currency: 'XTR',
-      botUsername: null,
-      starsEnabled: true,
+      cardNumber: '8600 1234 5678 9012',
+      cardHolder: 'DEMO SHOP',
+      paymentInstructions: 'Transfer the total and upload your receipt.',
     })
     .returning();
   if (!shop) throw new Error('Failed to create demo shop');

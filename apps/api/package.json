@@ -2,7 +2,7 @@
   "name": "@tma-shop/api",
   "version": "0.1.0",
   "private": true,
-  "description": "tma-shop backend — Hono + Postgres + Drizzle, Telegram initData auth and Stars payments.",
+  "description": "tma-shop backend — Hono + Postgres + Drizzle, Telegram initData auth and manual card payment.",
   "license": "MIT",
   "type": "module",
   "scripts": {

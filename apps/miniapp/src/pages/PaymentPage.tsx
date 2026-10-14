@@ -17,10 +17,11 @@ export function PaymentPage(): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: order, loading: orderLoading, error: orderError } = useAsync(
-    () => api.getOrder(id),
-    [id],
-  );
+  const {
+    data: order,
+    loading: orderLoading,
+    error: orderError,
+  } = useAsync(() => api.getOrder(id), [id]);
   const { data: shop, loading: shopLoading } = useAsync(() => api.getShop(), []);
 
   const onFileChosen = useCallback(
@@ -59,9 +60,7 @@ export function PaymentPage(): React.JSX.Element {
             )}
             {shop.paymentInstructions && (
               <div style={{ padding: '8px 16px' }}>
-                <Text style={{ color: 'var(--tgui--hint_color)' }}>
-                  {shop.paymentInstructions}
-                </Text>
+                <Text style={{ color: 'var(--tgui--hint_color)' }}>{shop.paymentInstructions}</Text>
               </div>
             )}
           </>
@@ -74,9 +73,7 @@ export function PaymentPage(): React.JSX.Element {
 
       {shop?.cardNumber && (
         <Section header={t('uploadReceiptLabel')}>
-          {error && (
-            <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{error}</Cell>
-          )}
+          {error && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{error}</Cell>}
           <input
             ref={fileInputRef}
             type="file"

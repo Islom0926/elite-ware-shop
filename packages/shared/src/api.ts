@@ -30,12 +30,6 @@ export const createOrderResponse = z.object({
 });
 export type CreateOrderResponse = z.infer<typeof createOrderResponse>;
 
-/** Response of the Stars invoice endpoint — link is opened via `openInvoice`. */
-export const invoiceResponse = z.object({
-  invoiceLink: z.url(),
-});
-export type InvoiceResponse = z.infer<typeof invoiceResponse>;
-
 export const apiError = z.object({
   error: z.object({
     code: z.string(),

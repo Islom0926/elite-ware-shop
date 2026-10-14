@@ -4,12 +4,13 @@ import type {
   CatalogQuery,
   Category,
   CreateOrderResponse,
-  InvoiceResponse,
   Order,
   Product,
   ProductInput,
   ShopConfig,
   UpdateShopSettingsRequest,
+  User,
+  UserRole,
 } from '@tma-shop/shared';
 
 export interface ProductPage {
@@ -122,10 +123,6 @@ export class ApiClient {
     return this.request<Order>(`/orders/${id}`);
   }
 
-  createInvoice(orderId: string): Promise<InvoiceResponse> {
-    return this.request<InvoiceResponse>(`/orders/${orderId}/invoice`, { method: 'POST' });
-  }
-
   submitReceipt(orderId: string, imageData: string): Promise<Order> {
     return this.request<Order>(`/orders/${orderId}/receipt`, {
       method: 'POST',
@@ -156,6 +153,17 @@ export class ApiClient {
     return this.request<Product>('/admin/products', {
       method: 'POST',
       body: JSON.stringify(input),
+    });
+  }
+
+  adminListUsers(): Promise<User[]> {
+    return this.request<User[]>('/admin/users');
+  }
+
+  adminSetUserRole(telegramId: number, role: UserRole): Promise<User> {
+    return this.request<User>(`/admin/users/${telegramId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
     });
   }
 }

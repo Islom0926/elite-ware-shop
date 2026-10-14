@@ -50,7 +50,13 @@ describeDb('API integration', () => {
     await db.delete(shops);
     const [shop] = await db
       .insert(shops)
-      .values({ name: 'Test Shop', description: '', currency: 'XTR', starsEnabled: true })
+      .values({
+        name: 'Test Shop',
+        description: '',
+        currency: 'XTR',
+        cardNumber: '8600 0000 0000 0000',
+        cardHolder: 'TEST SHOP',
+      })
       .returning();
     shopId = shop!.id;
     const [cat] = await db
@@ -81,7 +87,6 @@ describeDb('API integration', () => {
       JWT_TTL_SECONDS: 3600,
       INITDATA_MAX_AGE_SECONDS: 86_400,
       ADMIN_TELEGRAM_IDS: [ADMIN_ID],
-      TELEGRAM_WEBHOOK_SECRET: 'whsec-test',
       SHOP_ID: shopId,
       CORS_ORIGIN: '*',
     };
@@ -120,7 +125,7 @@ describeDb('API integration', () => {
     expect(page.total).toBeGreaterThanOrEqual(1);
   });
 
-  it('runs the cart → order → payment flow', async () => {
+  it('runs the cart → order → manual payment flow', async () => {
     const token = await authToken(CUSTOMER_ID, 'Alice');
     const auth = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
 
@@ -144,26 +149,26 @@ describeDb('API integration', () => {
     const before = await app.request(`/api/orders/${orderId}`, { headers: auth });
     expect(((await before.json()) as { status: string }).status).toBe('pending');
 
-    // Telegram webhook confirms payment
-    const hook = await app.request('/webhook/telegram', {
+    // Customer submits a payment receipt
+    const receipt = await app.request(`/api/orders/${orderId}/receipt`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'X-Telegram-Bot-Api-Secret-Token': 'whsec-test',
-      },
-      body: JSON.stringify({
-        update_id: 1,
-        message: {
-          successful_payment: {
-            currency: 'XTR',
-            total_amount: 300,
-            invoice_payload: orderId,
-            telegram_payment_charge_id: 'charge_abc',
-          },
-        },
-      }),
+      headers: auth,
+      body: JSON.stringify({ imageData: 'data:image/png;base64,aGVsbG8=' }),
     });
-    expect(hook.status).toBe(200);
+    expect(receipt.status).toBe(200);
+    expect(((await receipt.json()) as { status: string }).status).toBe('awaiting_payment');
+
+    // Admin confirms the payment
+    const adminToken = await authToken(ADMIN_ID, 'Ivan');
+    const confirm = await app.request(`/api/admin/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ status: 'paid' }),
+    });
+    expect(confirm.status).toBe(200);
+    const confirmed = (await confirm.json()) as { status: string; confirmedBy: number };
+    expect(confirmed.status).toBe('paid');
+    expect(confirmed.confirmedBy).toBe(ADMIN_ID);
 
     // Order is now paid, stock decremented 10 → 8
     const after = await app.request(`/api/orders/${orderId}`, { headers: auth });
@@ -172,13 +177,42 @@ describeDb('API integration', () => {
     expect(((await prod.json()) as { stock: number }).stock).toBe(8);
   });
 
-  it('rejects the webhook with a wrong secret', async () => {
-    const res = await app.request('/webhook/telegram', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'X-Telegram-Bot-Api-Secret-Token': 'wrong' },
-      body: JSON.stringify({ update_id: 2 }),
+  it('manages admin roles', async () => {
+    const adminToken = await authToken(ADMIN_ID, 'Ivan');
+    const adminAuth = { Authorization: `Bearer ${adminToken}`, 'content-type': 'application/json' };
+
+    // Customer must exist (signed in at least once) before being promoted
+    await authToken(CUSTOMER_ID, 'Alice');
+
+    const promote = await app.request(`/api/admin/users/${CUSTOMER_ID}/role`, {
+      method: 'PATCH',
+      headers: adminAuth,
+      body: JSON.stringify({ role: 'admin' }),
     });
-    expect(res.status).toBe(401);
+    expect(promote.status).toBe(200);
+    expect(((await promote.json()) as { role: string }).role).toBe('admin');
+
+    const list = await app.request('/api/admin/users', { headers: adminAuth });
+    expect(list.status).toBe(200);
+    const users = (await list.json()) as { telegramId: number; role: string }[];
+    expect(users.some((u) => u.telegramId === CUSTOMER_ID && u.role === 'admin')).toBe(true);
+
+    // Cannot demote the only other admin down to zero... but there are two admins now,
+    // so demoting the customer back is fine.
+    const demote = await app.request(`/api/admin/users/${CUSTOMER_ID}/role`, {
+      method: 'PATCH',
+      headers: adminAuth,
+      body: JSON.stringify({ role: 'customer' }),
+    });
+    expect(demote.status).toBe(200);
+
+    // Cannot change your own role
+    const self = await app.request(`/api/admin/users/${ADMIN_ID}/role`, {
+      method: 'PATCH',
+      headers: adminAuth,
+      body: JSON.stringify({ role: 'customer' }),
+    });
+    expect(self.status).toBe(400);
   });
 
   it('enforces admin-only routes', async () => {

@@ -8,7 +8,6 @@ import { catalogRoutes } from './routes/catalog.js';
 import { cartRoutes } from './routes/cart.js';
 import { orderRoutes } from './routes/orders.js';
 import { adminRoutes } from './routes/admin.js';
-import { webhookRoutes } from './routes/webhook.js';
 
 export function createApp(deps: AppDeps): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -37,9 +36,6 @@ export function createApp(deps: AppDeps): Hono<AppBindings> {
   });
 
   app.get('/health', (c) => c.json({ status: 'ok' }));
-
-  // Telegram webhook is not shop-scoped (it reconciles by order id).
-  app.route('/webhook', webhookRoutes());
 
   // All public + authenticated API routes resolve the active shop first.
   const api = new Hono<AppBindings>();

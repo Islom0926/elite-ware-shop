@@ -18,7 +18,6 @@ const envSchema = z.object({
         .map((part) => Number(part)),
     )
     .pipe(z.array(z.number().int().positive())),
-  TELEGRAM_WEBHOOK_SECRET: z.string().min(1).default('dev-webhook-secret'),
   SHOP_ID: z.uuid().optional(),
   CORS_ORIGIN: z.string().default('*'),
 });

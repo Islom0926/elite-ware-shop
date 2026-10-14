@@ -36,7 +36,11 @@ export function CatalogPage(): React.JSX.Element {
           gap: 8,
         }}
       >
-        <img src="/logo.png" alt="Elite Ware Shop" style={{ width: 88, height: 88, borderRadius: 16 }} />
+        <img
+          src="/logo.png"
+          alt="Elite Ware Shop"
+          style={{ width: 88, height: 88, borderRadius: 16 }}
+        />
       </div>
 
       <Section>

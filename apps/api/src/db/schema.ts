@@ -25,9 +25,7 @@ export const shops = pgTable('shops', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   description: text('description').notNull().default(''),
-  currency: text('currency').notNull().default('XTR'),
-  botUsername: text('bot_username'),
-  starsEnabled: boolean('stars_enabled').notNull().default(true),
+  currency: text('currency').notNull().default('UZS'),
   /** Bank card number customers transfer manual payments to. */
   cardNumber: text('card_number'),
   /** Name on the bank card, shown to customers alongside the number. */
@@ -128,7 +126,8 @@ export const orders = pgTable('orders', {
   status: orderStatusEnum('status').notNull().default('pending'),
   total: integer('total').notNull(),
   currency: text('currency').notNull(),
-  paymentChargeId: text('payment_charge_id'),
+  /** Telegram id of the admin who confirmed the manual payment. */
+  confirmedBy: bigint('confirmed_by', { mode: 'number' }),
   /** Customer-submitted payment proof, stored as a data URL (base64 image). */
   receiptImage: text('receipt_image'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

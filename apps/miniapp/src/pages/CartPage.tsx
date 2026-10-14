@@ -31,7 +31,9 @@ export function CartPage(): React.JSX.Element {
   const hasItems = (cart?.lines.length ?? 0) > 0;
 
   useMainButton({
-    text: cart ? t('checkoutWithPrice', { price: formatPrice(cart.total, cart.currency) }) : t('checkout'),
+    text: cart
+      ? t('checkoutWithPrice', { price: formatPrice(cart.total, cart.currency) })
+      : t('checkout'),
     visible: hasItems,
     loading: busy,
     onClick: checkout,

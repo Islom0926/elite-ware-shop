@@ -29,8 +29,8 @@ export const order = z.object({
   items: z.array(orderItem).min(1),
   total: moneyAmount,
   currency: currencyCode,
-  /** Telegram payment charge id once paid (unused for manual payments). */
-  paymentChargeId: z.string().nullable(),
+  /** Telegram id of the admin who confirmed the manual payment. */
+  confirmedBy: telegramUserId.nullable(),
   /** Customer-submitted payment proof, as a data URL. */
   receiptImage: z.string().nullable(),
   createdAt: isoDateTime,

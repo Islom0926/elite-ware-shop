@@ -57,9 +57,7 @@ export function ProductPage(): React.JSX.Element {
       </Section>
       <Section>
         <Cell
-          after={
-            product.stock === null ? t('inStock') : t('leftStock', { count: product.stock })
-          }
+          after={product.stock === null ? t('inStock') : t('leftStock', { count: product.stock })}
         >
           {t('availability')}
         </Cell>
