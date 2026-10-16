@@ -32,6 +32,15 @@ export const shopConfig = shop.pick({
 });
 export type ShopConfig = z.infer<typeof shopConfig>;
 
+export const shopStats = z.object({
+  /** Sum of all paid+ order totals (everything from `paid` through `delivered`). */
+  totalRevenue: z.number().int().nonnegative(),
+  currency: currencyCode,
+  userCount: z.number().int().nonnegative(),
+  orderCount: z.number().int().nonnegative(),
+});
+export type ShopStats = z.infer<typeof shopStats>;
+
 export const updateShopSettingsRequest = z.object({
   cardNumber: z.string().trim().max(64).nullable(),
   cardHolder: z.string().trim().max(128).nullable(),

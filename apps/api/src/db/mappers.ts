@@ -5,6 +5,7 @@ import type {
   OrderItem,
   Product,
   PromoCode,
+  RequiredChannel,
   SessionUser,
   ShopConfig,
   User,
@@ -16,6 +17,7 @@ import type {
   orders,
   products,
   promoCodes,
+  requiredChannels,
   shops,
   users,
 } from './schema.js';
@@ -28,6 +30,7 @@ type OrderRow = typeof orders.$inferSelect;
 type OrderItemRow = typeof orderItems.$inferSelect;
 type BannerRow = typeof banners.$inferSelect;
 type PromoCodeRow = typeof promoCodes.$inferSelect;
+type RequiredChannelRow = typeof requiredChannels.$inferSelect;
 
 export function toProductDTO(row: ProductRow): Product {
   return {
@@ -150,7 +153,18 @@ export function toOrderDTO(row: OrderRow, items: OrderItemRow[]): Order {
     discountAmount: row.discountAmount,
     confirmedBy: row.confirmedBy,
     receiptImage: row.receiptImage,
+    deliveryAddress: row.deliveryAddress,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function toRequiredChannelDTO(row: RequiredChannelRow): RequiredChannel {
+  return {
+    id: row.id,
+    shopId: row.shopId,
+    username: row.username,
+    title: row.title,
+    createdAt: row.createdAt.toISOString(),
   };
 }

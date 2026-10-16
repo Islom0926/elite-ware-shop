@@ -26,6 +26,7 @@ import { formatPrice } from '../lib/format.js';
 import { fileToCompressedDataUrl } from '../lib/image.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
+import { ImageLightbox } from '../components/ImageLightbox.js';
 import { useLang } from '../i18n/LanguageProvider.js';
 import type { Dictionary } from '../i18n/translations.js';
 
@@ -35,113 +36,434 @@ const STATUS_LABEL_KEY: Record<OrderStatus, keyof Dictionary> = {
   paid: 'statusPaid',
   cancelled: 'statusCancelled',
   fulfilled: 'statusFulfilled',
-  accepted: 'statusAccepted',
   in_delivery: 'statusInDelivery',
+  accepted: 'statusAccepted',
+  in_china: 'statusInChina',
+  at_china_border: 'statusAtChinaBorder',
   at_warehouse: 'statusAtWarehouse',
   shipped: 'statusShipped',
+  delivered: 'statusDelivered',
 };
 
-/** The next status in the post-payment fulfillment pipeline, if any. */
+/**
+ * The post-payment fulfillment pipeline, in order:
+ * accepted -> in_china -> at_china_border -> at_warehouse -> shipped -> delivered
+ */
 const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
   paid: 'accepted',
-  accepted: 'in_delivery',
-  in_delivery: 'at_warehouse',
+  accepted: 'in_china',
+  in_china: 'at_china_border',
+  at_china_border: 'at_warehouse',
   at_warehouse: 'shipped',
+  shipped: 'delivered',
 };
 const NEXT_STATUS_LABEL_KEY: Partial<Record<OrderStatus, keyof Dictionary>> = {
   paid: 'acceptOrder',
-  accepted: 'startDelivery',
-  in_delivery: 'markAtWarehouse',
+  accepted: 'markInChina',
+  in_china: 'markAtChinaBorder',
+  at_china_border: 'markAtWarehouse',
   at_warehouse: 'markShipped',
+  shipped: 'markDelivered',
 };
+
+const CANCELLABLE_STATUSES: OrderStatus[] = [
+  'pending',
+  'awaiting_payment',
+  'paid',
+  'accepted',
+  'in_china',
+  'at_china_border',
+  'at_warehouse',
+];
+
+type AdminTab = 'products' | 'payments' | 'orders' | 'stats';
+
+const ADMIN_TABS: { key: AdminTab; icon: string; labelKey: keyof Dictionary }[] = [
+  { key: 'products', icon: '🏷️', labelKey: 'adminTabProducts' },
+  { key: 'payments', icon: '💳', labelKey: 'adminTabPayments' },
+  { key: 'orders', icon: '📦', labelKey: 'adminTabOrders' },
+  { key: 'stats', icon: '📊', labelKey: 'adminTabStats' },
+];
 
 export function AdminPage(): React.JSX.Element {
   const { isAdmin, user } = useSession();
   const { t } = useLang();
+  const [tab, setTab] = useState<AdminTab>('products');
   const [reloadKey, setReloadKey] = useState(0);
   const reload = (): void => setReloadKey((k) => k + 1);
 
   const shop = useAsync(() => api.getShop(), [reloadKey]);
-  const orders = useAsync(() => api.adminGetOrders(), [reloadKey]);
 
   if (!isAdmin) return <ErrorView message={t('adminsOnly')} />;
 
-  const setStatus = async (id: string, status: OrderStatus): Promise<void> => {
-    await api.adminSetOrderStatus(id, status);
-    reload();
+  return (
+    <div style={{ paddingBottom: 90 }}>
+      {tab === 'products' && (
+        <List>
+          <CategoriesManager />
+          <NewProductForm currency={shop.data?.currency ?? 'UZS'} onCreated={reload} />
+          <ProductsManager currency={shop.data?.currency ?? 'UZS'} />
+          <BannersManager />
+        </List>
+      )}
+      {tab === 'payments' && (
+        <List>
+          <ReceiptsReview currency={shop.data?.currency ?? 'UZS'} />
+          <ShopSettingsForm shop={shop.data} onSaved={reload} />
+        </List>
+      )}
+      {tab === 'orders' && (
+        <List>
+          <OrdersManager currency={shop.data?.currency ?? 'UZS'} />
+        </List>
+      )}
+      {tab === 'stats' && (
+        <List>
+          <StatsOverview />
+          <RequiredChannelsManager />
+          <AdminsManager selfTelegramId={user?.telegramId ?? null} />
+          <PromoCodesManager />
+        </List>
+      )}
+
+      <nav
+        className="card-surface"
+        style={{
+          position: 'fixed',
+          left: 16,
+          right: 16,
+          bottom: 'calc(84px + env(safe-area-inset-bottom))',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          padding: '10px 8px',
+          zIndex: 50,
+          borderRadius: 24,
+        }}
+      >
+        {ADMIN_TABS.map(({ key, icon, labelKey }) => {
+          const active = tab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              className="press-anim"
+              onClick={() => setTab(key)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                border: 'none',
+                background: 'none',
+                padding: '4px 10px',
+                cursor: 'pointer',
+                color: active ? 'var(--brand)' : 'var(--tgui--hint_color)',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 700 }}>{t(labelKey)}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}
+
+function ReceiptsReview({ currency }: { currency: string }): React.JSX.Element {
+  const { t } = useLang();
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const orders = useAsync(() => api.adminGetOrders(), [reloadKey]);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const pending = orders.data?.filter((o) => o.status === 'awaiting_payment') ?? [];
+
+  const decide = async (id: string, status: 'paid' | 'cancelled'): Promise<void> => {
+    setBusyId(id);
+    try {
+      await api.adminSetOrderStatus(id, status);
+      reload();
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
-    <List>
-      <ShopSettingsForm shop={shop.data} onSaved={reload} />
-      <BannersManager />
-      <CategoriesManager />
-      <NewProductForm currency={shop.data?.currency ?? 'UZS'} onCreated={reload} />
-      <ProductsManager currency={shop.data?.currency ?? 'UZS'} />
-      <PromoCodesManager />
+    <Section header={t('receiptsReviewHeader')}>
+      {orders.loading && <Loader />}
+      {orders.error && <ErrorView message={orders.error} />}
+      {pending.length === 0 && <Cell>{t('noPendingReceipts')}</Cell>}
+      {pending.map((order) => (
+        <Cell
+          key={order.id}
+          subtitle={formatPrice(order.total, order.currency || currency)}
+          description={
+            order.receiptImage ? (
+              <button
+                type="button"
+                onClick={() => setLightboxImage(order.receiptImage)}
+                style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                <img
+                  src={order.receiptImage}
+                  alt={t('receiptLabel')}
+                  style={{ maxWidth: 140, borderRadius: 8, display: 'block', marginTop: 6 }}
+                />
+              </button>
+            ) : undefined
+          }
+          after={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Button
+                size="s"
+                mode="filled"
+                loading={busyId === order.id}
+                onClick={() => void decide(order.id, 'paid')}
+              >
+                {t('confirmPayment')}
+              </Button>
+              <Button
+                size="s"
+                mode="plain"
+                loading={busyId === order.id}
+                onClick={() => void decide(order.id, 'cancelled')}
+              >
+                {t('rejectReceipt')}
+              </Button>
+            </div>
+          }
+          multiline
+        >
+          {t('orderNumber', { id: order.id.slice(0, 8) })}
+        </Cell>
+      ))}
+      {lightboxImage && (
+        <ImageLightbox
+          images={[lightboxImage]}
+          index={0}
+          onIndexChange={() => undefined}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
+    </Section>
+  );
+}
 
-      <Section header={t('allOrders')}>
-        {orders.loading && <Loader />}
-        {orders.error && <ErrorView message={orders.error} />}
-        {orders.data?.length === 0 && <Cell>{t('noOrders')}</Cell>}
-        {orders.data?.map((order) => (
-          <Cell
-            key={order.id}
-            subtitle={`${t(STATUS_LABEL_KEY[order.status])} · ${formatPrice(order.total, order.currency)}`}
-            description={
-              order.receiptImage ? (
-                <div style={{ marginTop: 6 }}>
-                  <a href={order.receiptImage} target="_blank" rel="noreferrer">
-                    <img
-                      src={order.receiptImage}
-                      alt={t('receiptLabel')}
-                      style={{ maxWidth: 120, borderRadius: 8, display: 'block' }}
-                    />
-                  </a>
-                </div>
-              ) : undefined
-            }
-            after={
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {order.status === 'awaiting_payment' && (
-                  <Button size="s" mode="filled" onClick={() => void setStatus(order.id, 'paid')}>
-                    {t('confirmPayment')}
-                  </Button>
-                )}
-                {NEXT_STATUS[order.status] && (
-                  <Button
-                    size="s"
-                    mode="bezeled"
-                    onClick={() =>
-                      void setStatus(order.id, NEXT_STATUS[order.status] as OrderStatus)
-                    }
-                  >
-                    {t(NEXT_STATUS_LABEL_KEY[order.status] as keyof Dictionary)}
-                  </Button>
-                )}
-                {(order.status === 'pending' ||
-                  order.status === 'awaiting_payment' ||
-                  order.status === 'paid' ||
-                  order.status === 'accepted') && (
-                  <Button
-                    size="s"
-                    mode="plain"
-                    onClick={() => void setStatus(order.id, 'cancelled')}
-                  >
-                    {t('cancel')}
-                  </Button>
-                )}
-              </div>
-            }
-            multiline
-          >
-            #{order.id.slice(0, 8)}
-          </Cell>
-        ))}
-      </Section>
+function OrdersManager({ currency }: { currency: string }): React.JSX.Element {
+  const { t } = useLang();
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const orders = useAsync(() => api.adminGetOrders(), [reloadKey]);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-      <AdminsManager selfTelegramId={user?.telegramId ?? null} />
-    </List>
+  const setStatus = async (id: string, status: OrderStatus): Promise<void> => {
+    setBusyId(id);
+    try {
+      await api.adminSetOrderStatus(id, status);
+      reload();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Section header={t('allOrders')}>
+      {orders.loading && <Loader />}
+      {orders.error && <ErrorView message={orders.error} />}
+      {orders.data?.length === 0 && <Cell>{t('noOrders')}</Cell>}
+      {orders.data?.map((order) => (
+        <Cell
+          key={order.id}
+          before={
+            order.items[0]?.imageUrl ? (
+              <img
+                src={order.items[0].imageUrl}
+                alt=""
+                style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8 }}
+              />
+            ) : undefined
+          }
+          subtitle={`${t(STATUS_LABEL_KEY[order.status])} · ${formatPrice(order.total, order.currency || currency)}`}
+          description={
+            <div style={{ marginTop: 4, fontSize: 12, color: 'var(--tgui--hint_color)' }}>
+              {order.items
+                .map((item) =>
+                  [item.title, item.selectedColor, item.selectedSize].filter(Boolean).join(' · '),
+                )
+                .join('; ')}
+              {order.deliveryAddress && (
+                <div style={{ marginTop: 2 }}>📍 {order.deliveryAddress}</div>
+              )}
+            </div>
+          }
+          after={
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {order.status === 'awaiting_payment' && (
+                <Button
+                  size="s"
+                  mode="filled"
+                  loading={busyId === order.id}
+                  onClick={() => void setStatus(order.id, 'paid')}
+                >
+                  {t('confirmPayment')}
+                </Button>
+              )}
+              {NEXT_STATUS[order.status] && (
+                <Button
+                  size="s"
+                  mode="bezeled"
+                  loading={busyId === order.id}
+                  onClick={() => void setStatus(order.id, NEXT_STATUS[order.status] as OrderStatus)}
+                >
+                  {t(NEXT_STATUS_LABEL_KEY[order.status] as keyof Dictionary)}
+                </Button>
+              )}
+              {CANCELLABLE_STATUSES.includes(order.status) && (
+                <Button
+                  size="s"
+                  mode="plain"
+                  loading={busyId === order.id}
+                  onClick={() => void setStatus(order.id, 'cancelled')}
+                >
+                  {t('cancel')}
+                </Button>
+              )}
+            </div>
+          }
+          multiline
+        >
+          {t('orderNumber', { id: order.id.slice(0, 8) })}
+        </Cell>
+      ))}
+    </Section>
+  );
+}
+
+function StatsOverview(): React.JSX.Element {
+  const { t } = useLang();
+  const stats = useAsync(() => api.adminGetStats(), []);
+
+  if (stats.loading) return <Loader />;
+  if (stats.error) return <ErrorView message={stats.error} />;
+  if (!stats.data) return <></>;
+
+  return (
+    <Section header={t('statsHeader')}>
+      <div style={{ display: 'flex', gap: 10, padding: '0 16px 16px' }}>
+        <div
+          className="card-surface"
+          style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--brand)' }}>
+            {formatPrice(stats.data.totalRevenue, stats.data.currency)}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)', marginTop: 2 }}>
+            {t('totalRevenueLabel')}
+          </div>
+        </div>
+        <div
+          className="card-surface"
+          style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{stats.data.userCount}</div>
+          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)', marginTop: 2 }}>
+            {t('userCountLabel')}
+          </div>
+        </div>
+        <div
+          className="card-surface"
+          style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{stats.data.orderCount}</div>
+          <div style={{ fontSize: 11, color: 'var(--tgui--hint_color)', marginTop: 2 }}>
+            {t('orderCountLabel')}
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function RequiredChannelsManager(): React.JSX.Element {
+  const { t } = useLang();
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = (): void => setReloadKey((k) => k + 1);
+  const channels = useAsync(() => api.adminListChannels(), [reloadKey]);
+  const [username, setUsername] = useState('');
+  const [title, setTitle] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const create = async (): Promise<void> => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api.adminCreateChannel({ username: username.trim(), title: title.trim() });
+      setUsername('');
+      setTitle('');
+      reload();
+    } catch (err) {
+      setMessage(err instanceof ApiClientError ? err.message : t('channelSaveFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string): Promise<void> => {
+    setBusy(true);
+    try {
+      await api.adminDeleteChannel(id);
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section header={t('requiredChannelsHeader')}>
+      {channels.loading && <Loader />}
+      {channels.error && <ErrorView message={channels.error} />}
+      {message && <Cell style={{ color: 'var(--tgui--destructive_text_color)' }}>{message}</Cell>}
+      {channels.data?.length === 0 && <Cell>{t('noRequiredChannels')}</Cell>}
+      {channels.data?.map((ch) => (
+        <Cell
+          key={ch.id}
+          subtitle={`@${ch.username}`}
+          after={
+            <Button size="s" mode="plain" loading={busy} onClick={() => void remove(ch.id)}>
+              {t('remove')}
+            </Button>
+          }
+        >
+          {ch.title}
+        </Cell>
+      ))}
+      <Input
+        header={t('channelTitleLabel')}
+        placeholder={t('channelTitlePlaceholder')}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <Input
+        header={t('channelUsernameLabel')}
+        placeholder={t('channelUsernamePlaceholder')}
+        value={username}
+        onChange={(e) => setUsername(e.target.value.replace(/^@/, ''))}
+      />
+      <div style={{ padding: 16 }}>
+        <Button
+          stretched
+          loading={busy}
+          disabled={!username.trim() || !title.trim()}
+          onClick={() => void create()}
+        >
+          {t('addChannel')}
+        </Button>
+      </div>
+    </Section>
   );
 }
 

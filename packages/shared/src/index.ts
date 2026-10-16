@@ -5,4 +5,5 @@ export * from './catalog.js';
 export * from './cart.js';
 export * from './order.js';
 export * from './promo.js';
+export * from './channel.js';
 export * from './api.js';

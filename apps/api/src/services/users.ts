@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
-import type { RankInfo, User, UserRole } from '@tma-shop/shared';
+import { PAID_ORDER_STATUSES, type RankInfo, type User, type UserRole } from '@tma-shop/shared';
 import type { Database } from '../db/client.js';
 import { orders, users } from '../db/schema.js';
 import { toUserDTO } from '../db/mappers.js';
@@ -51,6 +51,14 @@ export async function upsertUser(
 
 export async function getUser(db: Database, telegramId: number): Promise<UserRow | undefined> {
   return db.query.users.findFirst({ where: eq(users.telegramId, telegramId) });
+}
+
+/** First admin with a public `@username` the bot can link customers to. */
+export async function getAdminContactUsername(db: Database): Promise<string | undefined> {
+  const admin = await db.query.users.findFirst({
+    where: and(eq(users.role, 'admin'), sql`${users.username} is not null`),
+  });
+  return admin?.username ?? undefined;
 }
 
 /** Lists every known user (anyone who has ever signed in), newest first. */
@@ -116,7 +124,7 @@ export async function getUserRank(
       ordersCount: sql<number>`count(*)::int`,
     })
     .from(orders)
-    .where(and(eq(orders.shopId, shopId), inArray(orders.status, ['paid', 'fulfilled'])))
+    .where(and(eq(orders.shopId, shopId), inArray(orders.status, PAID_ORDER_STATUSES)))
     .groupBy(orders.userId);
 
   const ranked = rows.filter((r) => r.totalSpent > 0).sort((a, b) => b.totalSpent - a.totalSpent);

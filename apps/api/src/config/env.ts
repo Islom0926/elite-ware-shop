@@ -20,6 +20,10 @@ const envSchema = z.object({
     .pipe(z.array(z.number().int().positive())),
   SHOP_ID: z.uuid().optional(),
   CORS_ORIGIN: z.string().default('*'),
+  /** URL of the deployed miniapp, used to build the bot's "Open shop" button. */
+  MINIAPP_URL: z.string().min(1).optional(),
+  /** Shared secret Telegram echoes back in the `X-Telegram-Bot-Api-Secret-Token` header. */
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

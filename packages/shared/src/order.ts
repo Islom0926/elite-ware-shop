@@ -7,13 +7,32 @@ export const orderStatus = z.enum([
   'awaiting_payment', // receipt submitted, waiting for admin confirmation
   'paid', // payment confirmed by admin
   'cancelled',
-  'fulfilled', // legacy terminal status, superseded by `shipped`
+  'fulfilled', // legacy terminal status, superseded by `delivered`
+  'in_delivery', // legacy stage, superseded by the china/warehouse/shipped stages below
+  /**
+   * Post-payment fulfillment pipeline, in order:
+   * accepted -> in_china -> at_china_border -> at_warehouse -> shipped -> delivered
+   */
   'accepted', // admin has accepted the paid order for fulfillment
-  'in_delivery', // courier picked it up, on the way to our warehouse/sorting
-  'at_warehouse', // arrived at our warehouse
-  'shipped', // handed off to the customer's chosen post/cargo service
+  'in_china', // sourcing/purchasing in China
+  'at_china_border', // cleared to the China border, in transit to us
+  'at_warehouse', // arrived at our main warehouse
+  'shipped', // dispatched to the customer
+  'delivered', // customer has received the order (terminal)
 ]);
 export type OrderStatus = z.infer<typeof orderStatus>;
+
+/** Every status that means "payment has been confirmed" (post-`paid`, through delivery). */
+export const PAID_ORDER_STATUSES: readonly OrderStatus[] = [
+  'paid',
+  'accepted',
+  'in_china',
+  'at_china_border',
+  'at_warehouse',
+  'shipped',
+  'delivered',
+  'fulfilled',
+];
 
 /** Line item snapshot — title, price and image are frozen at order time. */
 export const orderItem = z.object({
@@ -44,6 +63,8 @@ export const order = z.object({
   confirmedBy: telegramUserId.nullable(),
   /** Customer-submitted payment proof, as a data URL. */
   receiptImage: z.string().nullable(),
+  /** Delivery address, snapshotted from the buyer's profile at checkout. */
+  deliveryAddress: z.string().nullable(),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });

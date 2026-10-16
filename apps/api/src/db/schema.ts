@@ -15,10 +15,11 @@ import { relations } from 'drizzle-orm';
 export const userRoleEnum = pgEnum('user_role', ['customer', 'admin']);
 
 /**
- * `fulfilled` is retained (but unused by new code) rather than removed, to
- * avoid a risky enum-recreation migration; the post-payment pipeline now
- * runs pending -> ... -> paid -> accepted -> in_delivery -> at_warehouse ->
- * shipped (terminal), or cancelled at any point before shipped.
+ * `fulfilled` and `in_delivery` are retained (but unused by new code) rather
+ * than removed, to avoid a risky enum-recreation migration; the post-payment
+ * pipeline now runs pending -> ... -> paid -> accepted -> in_china ->
+ * at_china_border -> at_warehouse -> shipped -> delivered (terminal), or
+ * cancelled at any point before delivered.
  */
 export const orderStatusEnum = pgEnum('order_status', [
   'pending',
@@ -30,6 +31,9 @@ export const orderStatusEnum = pgEnum('order_status', [
   'in_delivery',
   'at_warehouse',
   'shipped',
+  'in_china',
+  'at_china_border',
+  'delivered',
 ]);
 
 export interface ProductColor {
@@ -204,8 +208,22 @@ export const orders = pgTable('orders', {
   confirmedBy: bigint('confirmed_by', { mode: 'number' }),
   /** Customer-submitted payment proof, stored as a data URL (base64 image). */
   receiptImage: text('receipt_image'),
+  /** Delivery address, snapshotted from the buyer's profile at checkout. */
+  deliveryAddress: text('delivery_address'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Channels customers must join before the bot lets them use the shop. */
+export const requiredChannels = pgTable('required_channels', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  shopId: uuid('shop_id')
+    .notNull()
+    .references(() => shops.id, { onDelete: 'cascade' }),
+  /** Public channel username, without the leading `@`. */
+  username: text('username').notNull(),
+  title: text('title').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const orderItems = pgTable('order_items', {

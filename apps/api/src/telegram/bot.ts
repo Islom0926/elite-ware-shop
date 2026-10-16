@@ -1,11 +1,20 @@
 /**
- * Minimal outbound Telegram Bot API client, used only to push notifications
- * (new orders, payment receipts) to admins' own chat with the bot. There is
- * no webhook/inbound handling here — payment itself stays the manual
- * card-transfer flow in the miniapp.
+ * Minimal Telegram Bot API client: outbound notifications (new orders,
+ * payment receipts) to admins, plus the small set of calls the `/start`
+ * webhook handler needs (inline keyboards, membership checks). Payment
+ * itself stays the manual card-transfer flow in the miniapp — this is not a
+ * general bot framework.
  */
 
 const TELEGRAM_API = 'https://api.telegram.org';
+
+export interface InlineKeyboardButton {
+  text: string;
+  url?: string;
+  web_app?: { url: string };
+  callback_data?: string;
+}
+export type InlineKeyboard = InlineKeyboardButton[][];
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
@@ -15,19 +24,21 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 
-async function callTelegram(
+async function callTelegram<T = unknown>(
   botToken: string,
   method: string,
   body: string | FormData,
   isJson: boolean,
-): Promise<void> {
+): Promise<T | undefined> {
   const init: RequestInit = { method: 'POST', body };
   if (isJson) init.headers = { 'Content-Type': 'application/json' };
   const res = await fetch(`${TELEGRAM_API}/bot${botToken}/${method}`, init);
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`Telegram ${method} failed (${res.status}): ${text}`);
+  const payload = (await res.json().catch(() => null)) as { ok: boolean; result?: T } | null;
+  if (!res.ok || !payload?.ok) {
+    console.error(`Telegram ${method} failed (${res.status}):`, JSON.stringify(payload));
+    return undefined;
   }
+  return payload.result;
 }
 
 /** Sends a plain text notification to a single chat (best-effort, never throws). */
@@ -35,16 +46,86 @@ export async function sendTelegramMessage(
   botToken: string,
   chatId: number,
   text: string,
+  replyMarkup?: InlineKeyboard,
 ): Promise<void> {
   try {
     await callTelegram(
       botToken,
       'sendMessage',
-      JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+      JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+        ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}),
+      }),
       true,
     );
   } catch (err) {
     console.error('Failed to send Telegram message:', err);
+  }
+}
+
+/** Edits an existing message's text/keyboard in place (best-effort, never throws). */
+export async function editTelegramMessage(
+  botToken: string,
+  chatId: number,
+  messageId: number,
+  text: string,
+  replyMarkup?: InlineKeyboard,
+): Promise<void> {
+  try {
+    await callTelegram(
+      botToken,
+      'editMessageText',
+      JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'HTML',
+        ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}),
+      }),
+      true,
+    );
+  } catch (err) {
+    console.error('Failed to edit Telegram message:', err);
+  }
+}
+
+/** Acknowledges a callback query (stops the client's loading spinner), optionally with a toast. */
+export async function answerCallbackQuery(
+  botToken: string,
+  callbackQueryId: string,
+  text?: string,
+): Promise<void> {
+  try {
+    await callTelegram(
+      botToken,
+      'answerCallbackQuery',
+      JSON.stringify({ callback_query_id: callbackQueryId, ...(text ? { text } : {}) }),
+      true,
+    );
+  } catch (err) {
+    console.error('Failed to answer Telegram callback query:', err);
+  }
+}
+
+/** Checks whether a user is a member of a public channel (by `@username`). */
+export async function isChannelMember(
+  botToken: string,
+  channelUsername: string,
+  userId: number,
+): Promise<boolean> {
+  try {
+    const result = await callTelegram<{ status: string }>(
+      botToken,
+      'getChatMember',
+      JSON.stringify({ chat_id: `@${channelUsername}`, user_id: userId }),
+      true,
+    );
+    return !!result && ['member', 'administrator', 'creator'].includes(result.status);
+  } catch (err) {
+    console.error('Failed to check Telegram channel membership:', err);
+    return false;
   }
 }
 

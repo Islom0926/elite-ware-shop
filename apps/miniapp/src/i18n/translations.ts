@@ -146,6 +146,9 @@ export interface Dictionary {
   statusInDelivery: string;
   statusAtWarehouse: string;
   statusShipped: string;
+  statusInChina: string;
+  statusAtChinaBorder: string;
+  statusDelivered: string;
   categoryLabel: string;
   noCategoryLabel: string;
   productImagesLabel: string;
@@ -158,14 +161,35 @@ export interface Dictionary {
   sizePlaceholder: string;
   buyNow: string;
   acceptOrder: string;
-  startDelivery: string;
   markAtWarehouse: string;
   markShipped: string;
+  markInChina: string;
+  markAtChinaBorder: string;
+  markDelivered: string;
   colorLabel: string;
   sizeLabel: string;
   viewFullscreenLabel: string;
   chooseColorFirst: string;
   chooseSizeFirst: string;
+  adminTabProducts: string;
+  adminTabPayments: string;
+  adminTabOrders: string;
+  adminTabStats: string;
+  receiptsReviewHeader: string;
+  noPendingReceipts: string;
+  rejectReceipt: string;
+  statsHeader: string;
+  totalRevenueLabel: string;
+  userCountLabel: string;
+  orderCountLabel: string;
+  channelSaveFailed: string;
+  requiredChannelsHeader: string;
+  noRequiredChannels: string;
+  channelTitleLabel: string;
+  channelTitlePlaceholder: string;
+  channelUsernameLabel: string;
+  channelUsernamePlaceholder: string;
+  addChannel: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -323,14 +347,38 @@ export const dictionaries: Record<Lang, Dictionary> = {
     sizePlaceholder: 'Masalan: M',
     buyNow: 'Sotib olish',
     acceptOrder: 'Qabul qilish',
-    startDelivery: 'Yetkazishga yuborish',
-    markAtWarehouse: 'Omborga keldi',
-    markShipped: "Pochtaga jo'natildi",
+    markAtWarehouse: 'Bosh omborga keldi',
+    markShipped: "Jo'natib yuborildi",
+    markInChina: 'Xitoyda',
+    markAtChinaBorder: 'Xitoy chegarasida',
+    markDelivered: 'Yetkazib berildi',
     colorLabel: 'Rang',
     sizeLabel: "O'lcham",
     viewFullscreenLabel: "To'liq ekranda ko'rish",
     chooseColorFirst: 'Avval rangni tanlang',
     chooseSizeFirst: "Avval o'lchamni tanlang",
+    statusInChina: 'Xitoyda',
+    statusAtChinaBorder: 'Xitoy chegarasida',
+    statusDelivered: 'Yetkazib berildi',
+    adminTabProducts: 'Mahsulotlar',
+    adminTabPayments: "To'lovlar",
+    adminTabOrders: 'Buyurtmalar',
+    adminTabStats: 'Statistika',
+    receiptsReviewHeader: "To'lov cheklari",
+    noPendingReceipts: "Tekshirilishi kerak bo'lgan chek yo'q",
+    rejectReceipt: 'Rad etish',
+    statsHeader: 'Umumiy statistika',
+    totalRevenueLabel: 'Tushgan pul',
+    userCountLabel: 'Foydalanuvchilar',
+    orderCountLabel: 'Buyurtmalar',
+    channelSaveFailed: 'Kanalni saqlab bo‘lmadi',
+    requiredChannelsHeader: 'Majburiy obuna kanallari',
+    noRequiredChannels: "Hali kanal qo'shilmagan",
+    channelTitleLabel: 'Kanal nomi',
+    channelTitlePlaceholder: 'Masalan: Elite Ware yangiliklari',
+    channelUsernameLabel: 'Kanal username (@siz)',
+    channelUsernamePlaceholder: 'eliteware_channel',
+    addChannel: "Kanal qo'shish",
   },
   ru: {
     cart: '🛒 Корзина',
@@ -486,14 +534,38 @@ export const dictionaries: Record<Lang, Dictionary> = {
     sizePlaceholder: 'Например: M',
     buyNow: 'Купить',
     acceptOrder: 'Принять',
-    startDelivery: 'Отправить в доставку',
-    markAtWarehouse: 'Поступил на склад',
-    markShipped: 'Отправлен на почту',
+    markAtWarehouse: 'Поступил на главный склад',
+    markShipped: 'Отправлен',
+    markInChina: 'В Китае',
+    markAtChinaBorder: 'На границе Китая',
+    markDelivered: 'Доставлен',
     colorLabel: 'Цвет',
     sizeLabel: 'Размер',
     viewFullscreenLabel: 'Открыть на весь экран',
     chooseColorFirst: 'Сначала выберите цвет',
     chooseSizeFirst: 'Сначала выберите размер',
+    statusInChina: 'В Китае',
+    statusAtChinaBorder: 'На границе Китая',
+    statusDelivered: 'Доставлен',
+    adminTabProducts: 'Товары',
+    adminTabPayments: 'Оплаты',
+    adminTabOrders: 'Заказы',
+    adminTabStats: 'Статистика',
+    receiptsReviewHeader: 'Чеки оплаты',
+    noPendingReceipts: 'Нет чеков на проверке',
+    rejectReceipt: 'Отклонить',
+    statsHeader: 'Общая статистика',
+    totalRevenueLabel: 'Выручка',
+    userCountLabel: 'Пользователи',
+    orderCountLabel: 'Заказы',
+    channelSaveFailed: 'Не удалось сохранить канал',
+    requiredChannelsHeader: 'Каналы обязательной подписки',
+    noRequiredChannels: 'Каналы ещё не добавлены',
+    channelTitleLabel: 'Название канала',
+    channelTitlePlaceholder: 'Например: Новости Elite Ware',
+    channelUsernameLabel: 'Username канала (без @)',
+    channelUsernamePlaceholder: 'eliteware_channel',
+    addChannel: 'Добавить канал',
   },
 };
 

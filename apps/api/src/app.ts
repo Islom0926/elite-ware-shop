@@ -9,6 +9,7 @@ import { cartRoutes } from './routes/cart.js';
 import { orderRoutes } from './routes/orders.js';
 import { adminRoutes } from './routes/admin.js';
 import { profileRoutes } from './routes/profile.js';
+import { telegramRoutes } from './routes/telegram.js';
 
 export function createApp(deps: AppDeps): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -47,6 +48,7 @@ export function createApp(deps: AppDeps): Hono<AppBindings> {
   api.route('/orders', orderRoutes());
   api.route('/admin', adminRoutes());
   api.route('/profile', profileRoutes());
+  api.route('/telegram', telegramRoutes());
 
   app.route('/api', api);
 

@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Order, PromoPreview } from '@tma-shop/shared';
 import type { Database, DbClient } from '../db/client.js';
-import { cartItems, orderItems, orders, products, promoCodes, shops } from '../db/schema.js';
+import { cartItems, orderItems, orders, products, promoCodes, shops, users } from '../db/schema.js';
 import { toOrderDTO } from '../db/mappers.js';
 import { computeDiscount, findRedeemablePromoCode } from './promo.js';
 import { ApiError } from '../lib/errors.js';
@@ -128,6 +128,7 @@ export async function createOrderFromCart(
   return db.transaction(async (tx) => {
     const shop = await tx.query.shops.findFirst({ where: eq(shops.id, shopId) });
     if (!shop) throw ApiError.notFound('Shop not found');
+    const buyer = await tx.query.users.findFirst({ where: eq(users.telegramId, userId) });
 
     const { cartId, draft } = await loadCartDraft(tx, shopId, userId);
 
@@ -166,6 +167,7 @@ export async function createOrderFromCart(
         currency: shop.currency,
         promoCode: redeemedCode,
         discountAmount,
+        deliveryAddress: buyer?.address ?? null,
       })
       .returning();
     if (!order) throw new Error('Failed to create order');

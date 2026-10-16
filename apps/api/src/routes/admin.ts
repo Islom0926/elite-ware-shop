@@ -6,6 +6,7 @@ import {
   orderStatus,
   productInput,
   promoCodeInput,
+  requiredChannelInput,
   setUserRoleRequest,
   slug,
   updateShopSettingsRequest,
@@ -25,6 +26,12 @@ import {
 } from '../services/admin.js';
 import { confirmOrderPaidManually, listAllOrders, setOrderStatus } from '../services/orders.js';
 import { createPromoCode, deletePromoCode, listPromoCodes } from '../services/promo.js';
+import {
+  createRequiredChannel,
+  deleteRequiredChannel,
+  listRequiredChannels,
+} from '../services/channels.js';
+import { getShopStats } from '../services/stats.js';
 import { updateShopSettings } from '../services/shop.js';
 import { listUsers, setUserRole } from '../services/users.js';
 import { ApiError } from '../lib/errors.js';
@@ -129,6 +136,21 @@ export function adminRoutes(): Hono<AppBindings> {
     await deletePromoCode(c.get('db'), c.get('shopId'), c.req.valid('param').id);
     return c.body(null, 204);
   });
+
+  // Required (forced-subscription) channels
+  app.get('/channels', async (c) =>
+    c.json(await listRequiredChannels(c.get('db'), c.get('shopId'))),
+  );
+  app.post('/channels', zValidator('json', requiredChannelInput), async (c) =>
+    c.json(await createRequiredChannel(c.get('db'), c.get('shopId'), c.req.valid('json')), 201),
+  );
+  app.delete('/channels/:id', zValidator('param', idParam), async (c) => {
+    await deleteRequiredChannel(c.get('db'), c.get('shopId'), c.req.valid('param').id);
+    return c.body(null, 204);
+  });
+
+  // Stats
+  app.get('/stats', async (c) => c.json(await getShopStats(c.get('db'), c.get('shopId'))));
 
   // Admin management
   app.get('/users', async (c) => c.json(await listUsers(c.get('db'))));

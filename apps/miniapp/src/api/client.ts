@@ -13,7 +13,10 @@ import type {
   Product,
   ProductInput,
   RankInfo,
+  RequiredChannel,
+  RequiredChannelInput,
   ShopConfig,
+  ShopStats,
   UpdateShopSettingsRequest,
   User,
   UserRole,
@@ -271,6 +274,25 @@ export class ApiClient {
 
   adminDeletePromoCode(id: string): Promise<void> {
     return this.request<void>(`/admin/promo-codes/${id}`, { method: 'DELETE' });
+  }
+
+  adminListChannels(): Promise<RequiredChannel[]> {
+    return this.request<RequiredChannel[]>('/admin/channels');
+  }
+
+  adminCreateChannel(input: RequiredChannelInput): Promise<RequiredChannel> {
+    return this.request<RequiredChannel>('/admin/channels', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  adminDeleteChannel(id: string): Promise<void> {
+    return this.request<void>(`/admin/channels/${id}`, { method: 'DELETE' });
+  }
+
+  adminGetStats(): Promise<ShopStats> {
+    return this.request<ShopStats>('/admin/stats');
   }
 
   // --- profile ---
