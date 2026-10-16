@@ -258,6 +258,7 @@ function OrdersManager({ currency }: { currency: string }): React.JSX.Element {
   const reload = (): void => setReloadKey((k) => k + 1);
   const orders = useAsync(() => api.adminGetOrders(), [reloadKey]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const setStatus = async (id: string, status: OrderStatus): Promise<void> => {
     setBusyId(id);
@@ -296,6 +297,24 @@ function OrdersManager({ currency }: { currency: string }): React.JSX.Element {
                 .join('; ')}
               {order.deliveryAddress && (
                 <div style={{ marginTop: 2 }}>📍 {order.deliveryAddress}</div>
+              )}
+              {order.receiptImage && (
+                <button
+                  type="button"
+                  onClick={() => setLightboxImage(order.receiptImage)}
+                  style={{
+                    marginTop: 6,
+                    border: 'none',
+                    background: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    color: 'var(--brand)',
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  🧾 {t('viewReceiptLabel')}
+                </button>
               )}
             </div>
           }
@@ -338,6 +357,14 @@ function OrdersManager({ currency }: { currency: string }): React.JSX.Element {
           {t('orderNumber', { id: order.id.slice(0, 8) })}
         </Cell>
       ))}
+      {lightboxImage && (
+        <ImageLightbox
+          images={[lightboxImage]}
+          index={0}
+          onIndexChange={() => undefined}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
     </Section>
   );
 }

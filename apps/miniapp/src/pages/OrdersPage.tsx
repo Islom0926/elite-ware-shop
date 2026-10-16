@@ -7,6 +7,7 @@ import { useAsync } from '../hooks/useAsync.js';
 import { formatPrice, pluralize } from '../lib/format.js';
 import { Loader } from '../components/Loader.js';
 import { ErrorView } from '../components/ErrorView.js';
+import { ImageLightbox } from '../components/ImageLightbox.js';
 import { useLang } from '../i18n/LanguageProvider.js';
 import type { Dictionary } from '../i18n/translations.js';
 
@@ -47,6 +48,7 @@ export function OrdersPage(): React.JSX.Element {
   const { t } = useLang();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('active');
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} />;
@@ -139,6 +141,25 @@ export function OrdersPage(): React.JSX.Element {
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand)' }}>
                   {formatPrice(order.total, order.currency)}
                 </span>
+                {order.receiptImage && (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxImage(order.receiptImage)}
+                    style={{
+                      alignSelf: 'flex-start',
+                      border: 'none',
+                      background: 'none',
+                      padding: 0,
+                      marginTop: 2,
+                      cursor: 'pointer',
+                      color: 'var(--brand)',
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    🧾 {t('viewReceiptLabel')}
+                  </button>
+                )}
               </div>
               <button
                 type="button"
@@ -160,6 +181,14 @@ export function OrdersPage(): React.JSX.Element {
             </div>
           ))}
         </div>
+      )}
+      {lightboxImage && (
+        <ImageLightbox
+          images={[lightboxImage]}
+          index={0}
+          onIndexChange={() => undefined}
+          onClose={() => setLightboxImage(null)}
+        />
       )}
     </div>
   );

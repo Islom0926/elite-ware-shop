@@ -190,6 +190,7 @@ export interface Dictionary {
   channelUsernameLabel: string;
   channelUsernamePlaceholder: string;
   addChannel: string;
+  viewReceiptLabel: string;
 }
 
 export const dictionaries: Record<Lang, Dictionary> = {
@@ -379,6 +380,7 @@ export const dictionaries: Record<Lang, Dictionary> = {
     channelUsernameLabel: 'Kanal username (@siz)',
     channelUsernamePlaceholder: 'eliteware_channel',
     addChannel: "Kanal qo'shish",
+    viewReceiptLabel: "Chekni ko'rish",
   },
   ru: {
     cart: '🛒 Корзина',
@@ -566,6 +568,7 @@ export const dictionaries: Record<Lang, Dictionary> = {
     channelUsernameLabel: 'Username канала (без @)',
     channelUsernamePlaceholder: 'eliteware_channel',
     addChannel: 'Добавить канал',
+    viewReceiptLabel: 'Посмотреть чек',
   },
 };
 
