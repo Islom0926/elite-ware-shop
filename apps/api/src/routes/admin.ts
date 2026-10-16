@@ -10,6 +10,7 @@ import {
   setUserRoleRequest,
   slug,
   updateShopSettingsRequest,
+  type Product,
 } from '@tma-shop/shared';
 import type { AppBindings } from '../context.js';
 import { requireAdmin, requireAuth } from '../auth/middleware.js';
@@ -34,6 +35,12 @@ import {
 import { getShopStats } from '../services/stats.js';
 import { updateShopSettings } from '../services/shop.js';
 import { listUsers, setUserRole } from '../services/users.js';
+import {
+  formatTelegramAmount,
+  sendTelegramMessage,
+  sendTelegramPhoto,
+  type InlineKeyboard,
+} from '../telegram/bot.js';
 import { ApiError } from '../lib/errors.js';
 
 const idParam = z.object({ id: z.uuid() });
@@ -45,14 +52,54 @@ const categoryInput = z.object({
 });
 const statusInput = z.object({ status: orderStatus });
 
+/** Posts a new-product announcement to every required (storefront) channel, best-effort. */
+async function announceNewProduct(
+  botToken: string,
+  miniappUrl: string | undefined,
+  channels: { username: string }[],
+  product: Product,
+): Promise<void> {
+  if (channels.length === 0) return;
+
+  const caption =
+    `🆕 <b>${product.title}</b>\n\n` +
+    (product.description ? `${product.description}\n\n` : '') +
+    `💰 <b>${formatTelegramAmount(product.price, product.currency)}</b>`;
+  const keyboard: InlineKeyboard | undefined = miniappUrl
+    ? [[{ text: '🛍 Do‘konda ochish', url: `${miniappUrl}#/product/${product.id}` }]]
+    : undefined;
+
+  await Promise.all(
+    channels.map((ch) =>
+      product.imageUrl
+        ? sendTelegramPhoto(
+            botToken,
+            `@${ch.username}`,
+            product.imageUrl as string,
+            caption,
+            keyboard,
+          )
+        : sendTelegramMessage(botToken, `@${ch.username}`, caption, keyboard),
+    ),
+  );
+}
+
 export function adminRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
   app.use('*', requireAuth, requireAdmin);
 
   // Products
-  app.post('/products', zValidator('json', productInput), async (c) =>
-    c.json(await createProduct(c.get('db'), c.get('shopId'), c.req.valid('json')), 201),
-  );
+  app.post('/products', zValidator('json', productInput), async (c) => {
+    const db = c.get('db');
+    const shopId = c.get('shopId');
+    const product = await createProduct(db, shopId, c.req.valid('json'));
+
+    const env = c.get('env');
+    const channels = await listRequiredChannels(db, shopId);
+    void announceNewProduct(env.BOT_TOKEN, env.MINIAPP_URL, channels, product);
+
+    return c.json(product, 201);
+  });
   app.put(
     '/products/:id',
     zValidator('param', idParam),

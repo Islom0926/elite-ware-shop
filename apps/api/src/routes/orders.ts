@@ -13,14 +13,10 @@ import {
   submitOrderReceipt,
 } from '../services/orders.js';
 import { getUser } from '../services/users.js';
-import { notifyAdmins, notifyAdminsWithPhoto } from '../telegram/bot.js';
+import { formatTelegramAmount, notifyAdmins, notifyAdminsWithPhoto } from '../telegram/bot.js';
 import { ApiError } from '../lib/errors.js';
 
 const idParam = z.object({ id: z.uuid() });
-
-function formatAmount(amount: number, currency: string): string {
-  return `${new Intl.NumberFormat('ru-RU').format(amount)} ${currency}`;
-}
 
 function buyerLabel(user: {
   firstName: string;
@@ -50,7 +46,7 @@ export function orderRoutes(): Hono<AppBindings> {
         env.ADMIN_TELEGRAM_IDS,
         `🆕 <b>Yangi buyurtma</b> #${order.id.slice(0, 8)}\n` +
           `${buyer ? buyerLabel(buyer) : sub}\n\n${itemsText}\n\n` +
-          `Jami: <b>${formatAmount(order.total, order.currency)}</b>`,
+          `Jami: <b>${formatTelegramAmount(order.total, order.currency)}</b>`,
       );
     }
 
@@ -108,7 +104,7 @@ export function orderRoutes(): Hono<AppBindings> {
           `🧾 <b>To'lov cheki</b> — buyurtma #${order.id.slice(0, 8)}\n` +
             `${buyer ? buyerLabel(buyer) : sub}\n` +
             `Sana: ${now.toLocaleDateString('uz-UZ')} ${now.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}\n` +
-            `Summa: <b>${formatAmount(order.total, order.currency)}</b>`,
+            `Summa: <b>${formatTelegramAmount(order.total, order.currency)}</b>`,
         );
       }
 

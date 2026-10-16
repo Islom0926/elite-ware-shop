@@ -8,6 +8,11 @@
 
 const TELEGRAM_API = 'https://api.telegram.org';
 
+/** Formats a minor-unit amount for a Telegram caption, e.g. `150 000 UZS`. */
+export function formatTelegramAmount(amount: number, currency: string): string {
+  return `${new Intl.NumberFormat('ru-RU').format(amount)} ${currency}`;
+}
+
 export interface InlineKeyboardButton {
   text: string;
   url?: string;
@@ -44,7 +49,7 @@ async function callTelegram<T = unknown>(
 /** Sends a plain text notification to a single chat (best-effort, never throws). */
 export async function sendTelegramMessage(
   botToken: string,
-  chatId: number,
+  chatId: number | string,
   text: string,
   replyMarkup?: InlineKeyboard,
 ): Promise<void> {
@@ -132,9 +137,10 @@ export async function isChannelMember(
 /** Sends a photo (data URL) with a caption to a single chat (best-effort, never throws). */
 export async function sendTelegramPhoto(
   botToken: string,
-  chatId: number,
+  chatId: number | string,
   photoDataUrl: string,
   caption: string,
+  replyMarkup?: InlineKeyboard,
 ): Promise<void> {
   try {
     const form = new FormData();
@@ -142,6 +148,7 @@ export async function sendTelegramPhoto(
     form.set('caption', caption);
     form.set('parse_mode', 'HTML');
     form.set('photo', dataUrlToBlob(photoDataUrl), 'receipt.jpg');
+    if (replyMarkup) form.set('reply_markup', JSON.stringify({ inline_keyboard: replyMarkup }));
     await callTelegram(botToken, 'sendPhoto', form, false);
   } catch (err) {
     console.error('Failed to send Telegram photo:', err);
