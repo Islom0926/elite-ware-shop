@@ -252,6 +252,13 @@ function ReceiptsReview({ currency }: { currency: string }): React.JSX.Element {
   );
 }
 
+const ADMIN_ORDER_COMPLETED_STATUSES: OrderStatus[] = [
+  'shipped',
+  'delivered',
+  'fulfilled',
+  'cancelled',
+];
+
 function OrdersManager({ currency }: { currency: string }): React.JSX.Element {
   const { t } = useLang();
   const [reloadKey, setReloadKey] = useState(0);
@@ -259,6 +266,7 @@ function OrdersManager({ currency }: { currency: string }): React.JSX.Element {
   const orders = useAsync(() => api.adminGetOrders(), [reloadKey]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [tab, setTab] = useState<'active' | 'completed'>('active');
 
   const setStatus = async (id: string, status: OrderStatus): Promise<void> => {
     setBusyId(id);
@@ -270,12 +278,41 @@ function OrdersManager({ currency }: { currency: string }): React.JSX.Element {
     }
   };
 
+  const filtered = orders.data?.filter((order) =>
+    tab === 'completed'
+      ? ADMIN_ORDER_COMPLETED_STATUSES.includes(order.status)
+      : !ADMIN_ORDER_COMPLETED_STATUSES.includes(order.status),
+  );
+
   return (
     <Section header={t('allOrders')}>
+      <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px' }}>
+        {(['active', 'completed'] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            className="press-anim"
+            onClick={() => setTab(key)}
+            style={{
+              flex: 1,
+              border: 'none',
+              borderRadius: 'var(--pill-radius)',
+              padding: '8px 0',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              background: tab === key ? 'var(--brand)' : 'var(--chip-bg)',
+              color: tab === key ? '#fff' : 'var(--tgui--hint_color)',
+            }}
+          >
+            {t(key === 'active' ? 'ordersTabActive' : 'ordersTabCompleted')}
+          </button>
+        ))}
+      </div>
       {orders.loading && <Loader />}
       {orders.error && <ErrorView message={orders.error} />}
-      {orders.data?.length === 0 && <Cell>{t('noOrders')}</Cell>}
-      {orders.data?.map((order) => (
+      {filtered?.length === 0 && <Cell>{t('noOrders')}</Cell>}
+      {filtered?.map((order) => (
         <Cell
           key={order.id}
           before={
