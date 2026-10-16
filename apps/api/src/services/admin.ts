@@ -43,16 +43,37 @@ export async function updateProduct(
   return toProductDTO(row);
 }
 
+const FOREIGN_KEY_VIOLATION = '23503';
+
+/**
+ * Deletes a product, or — if it's referenced by past order items (which
+ * reference products with `onDelete: 'restrict'` to keep order history
+ * intact) — falls back to deactivating it instead, so it disappears from
+ * the storefront without breaking historical orders.
+ */
 export async function deleteProduct(
   db: Database,
   shopId: string,
   productId: string,
 ): Promise<void> {
-  const deleted = await db
-    .delete(products)
-    .where(and(eq(products.shopId, shopId), eq(products.id, productId)))
-    .returning({ id: products.id });
-  if (deleted.length === 0) throw ApiError.notFound('Product not found');
+  try {
+    const deleted = await db
+      .delete(products)
+      .where(and(eq(products.shopId, shopId), eq(products.id, productId)))
+      .returning({ id: products.id });
+    if (deleted.length === 0) throw ApiError.notFound('Product not found');
+  } catch (err) {
+    const pgCode =
+      (err as { code?: string } | undefined)?.code ??
+      (err as { cause?: { code?: string } } | undefined)?.cause?.code;
+    if (pgCode !== FOREIGN_KEY_VIOLATION) throw err;
+    const deactivated = await db
+      .update(products)
+      .set({ isActive: false })
+      .where(and(eq(products.shopId, shopId), eq(products.id, productId)))
+      .returning({ id: products.id });
+    if (deactivated.length === 0) throw ApiError.notFound('Product not found');
+  }
 }
 
 export async function createCategory(
