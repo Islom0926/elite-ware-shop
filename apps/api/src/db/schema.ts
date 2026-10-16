@@ -122,6 +122,8 @@ export const users = pgTable('users', {
   role: userRoleEnum('role').notNull().default('customer'),
   /** Delivery address the customer entered in their profile. */
   address: text('address'),
+  /** Phone number, collected via the bot's contact-share prompt on first /start. */
+  phone: text('phone'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

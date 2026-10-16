@@ -64,6 +64,13 @@
       "when": 1792168506594,
       "tag": "0008_charming_rage",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792170542896,
+      "tag": "0009_high_leo",
+      "breakpoints": true
     }
   ]
 }

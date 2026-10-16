@@ -96,6 +96,7 @@ export function toSessionUserDTO(row: UserRow): SessionUser {
     photoUrl: row.photoUrl,
     role: row.role,
     address: row.address,
+    phone: row.phone,
   };
 }
 
@@ -110,6 +111,7 @@ export function toUserDTO(row: UserRow): User {
     photoUrl: row.photoUrl,
     role: row.role,
     address: row.address,
+    phone: row.phone,
     createdAt: row.createdAt.toISOString(),
   };
 }

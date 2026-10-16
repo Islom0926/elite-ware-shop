@@ -13,7 +13,12 @@ import {
   submitOrderReceipt,
 } from '../services/orders.js';
 import { getUser } from '../services/users.js';
-import { formatTelegramAmount, notifyAdmins, notifyAdminsWithPhoto } from '../telegram/bot.js';
+import {
+  formatTelegramAmount,
+  notifyAdmins,
+  notifyAdminsWithPhoto,
+  type InlineKeyboard,
+} from '../telegram/bot.js';
 import { ApiError } from '../lib/errors.js';
 
 const idParam = z.object({ id: z.uuid() });
@@ -22,9 +27,12 @@ function buyerLabel(user: {
   firstName: string;
   lastName: string | null;
   username: string | null;
+  phone: string | null;
 }): string {
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
-  return user.username ? `${name} (@${user.username})` : name;
+  const handle = user.username ? ` (@${user.username})` : '';
+  const phone = user.phone ? `\n📞 ${user.phone}` : '';
+  return `${name}${handle}${phone}`;
 }
 
 export function orderRoutes(): Hono<AppBindings> {
@@ -97,6 +105,12 @@ export function orderRoutes(): Hono<AppBindings> {
       if (env.ADMIN_TELEGRAM_IDS.length > 0) {
         const buyer = await getUser(db, sub);
         const now = new Date();
+        const keyboard: InlineKeyboard = [
+          [
+            { text: '✅ Tasdiqlash', callback_data: `confirm_order:${order.id}` },
+            { text: '❌ Rad etish', callback_data: `reject_order:${order.id}` },
+          ],
+        ];
         void notifyAdminsWithPhoto(
           env.BOT_TOKEN,
           env.ADMIN_TELEGRAM_IDS,
@@ -105,6 +119,7 @@ export function orderRoutes(): Hono<AppBindings> {
             `${buyer ? buyerLabel(buyer) : sub}\n` +
             `Sana: ${now.toLocaleDateString('uz-UZ')} ${now.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}\n` +
             `Summa: <b>${formatTelegramAmount(order.total, order.currency)}</b>`,
+          keyboard,
         );
       }
 

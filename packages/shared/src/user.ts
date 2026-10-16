@@ -17,6 +17,8 @@ export const user = z.object({
   photoUrl: z.url().nullable(),
   role: userRole,
   address: z.string().max(512).nullable(),
+  /** Phone number, collected via the bot's contact-share prompt on first /start. */
+  phone: z.string().max(32).nullable(),
   createdAt: isoDateTime,
 });
 export type User = z.infer<typeof user>;
@@ -32,6 +34,7 @@ export const sessionUser = user.pick({
   photoUrl: true,
   role: true,
   address: true,
+  phone: true,
 });
 export type SessionUser = z.infer<typeof sessionUser>;
 

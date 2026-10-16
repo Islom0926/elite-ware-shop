@@ -53,6 +53,27 @@ export async function getUser(db: Database, telegramId: number): Promise<UserRow
   return db.query.users.findFirst({ where: eq(users.telegramId, telegramId) });
 }
 
+/** Saves the phone number collected via the bot's contact-share prompt. */
+export async function setUserPhone(
+  db: Database,
+  telegramId: number,
+  phone: string,
+): Promise<UserRow> {
+  const [row] = await db
+    .update(users)
+    .set({ phone })
+    .where(eq(users.telegramId, telegramId))
+    .returning();
+  if (!row) throw ApiError.notFound('User not found');
+  return row;
+}
+
+/** Whether a Telegram id currently holds the admin role, checked against the DB (not the static allow-list). */
+export async function isAdminTelegramId(db: Database, telegramId: number): Promise<boolean> {
+  const row = await db.query.users.findFirst({ where: eq(users.telegramId, telegramId) });
+  return row?.role === 'admin';
+}
+
 /** First admin with a public `@username` the bot can link customers to. */
 export async function getAdminContactUsername(db: Database): Promise<string | undefined> {
   const admin = await db.query.users.findFirst({

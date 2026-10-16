@@ -96,6 +96,59 @@ export async function editTelegramMessage(
   }
 }
 
+/** Edits an existing photo message's caption/keyboard in place (best-effort, never throws). */
+export async function editTelegramCaption(
+  botToken: string,
+  chatId: number,
+  messageId: number,
+  caption: string,
+  replyMarkup?: InlineKeyboard,
+): Promise<void> {
+  try {
+    await callTelegram(
+      botToken,
+      'editMessageCaption',
+      JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        caption,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: replyMarkup ?? [] },
+      }),
+      true,
+    );
+  } catch (err) {
+    console.error('Failed to edit Telegram caption:', err);
+  }
+}
+
+/** Prompts the user to share their phone number via Telegram's native contact card. */
+export async function requestContact(
+  botToken: string,
+  chatId: number,
+  text: string,
+  buttonText: string,
+): Promise<void> {
+  try {
+    await callTelegram(
+      botToken,
+      'sendMessage',
+      JSON.stringify({
+        chat_id: chatId,
+        text,
+        reply_markup: {
+          keyboard: [[{ text: buttonText, request_contact: true }]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }),
+      true,
+    );
+  } catch (err) {
+    console.error('Failed to request Telegram contact:', err);
+  }
+}
+
 /** Acknowledges a callback query (stops the client's loading spinner), optionally with a toast. */
 export async function answerCallbackQuery(
   botToken: string,
@@ -170,6 +223,9 @@ export async function notifyAdminsWithPhoto(
   adminIds: number[],
   photoDataUrl: string,
   caption: string,
+  replyMarkup?: InlineKeyboard,
 ): Promise<void> {
-  await Promise.all(adminIds.map((id) => sendTelegramPhoto(botToken, id, photoDataUrl, caption)));
+  await Promise.all(
+    adminIds.map((id) => sendTelegramPhoto(botToken, id, photoDataUrl, caption, replyMarkup)),
+  );
 }
